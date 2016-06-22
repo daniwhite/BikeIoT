@@ -20,23 +20,29 @@ def find_rssi():
     return int(rssi)
 
 while(True): #main loop of program
-    rssi = find_rssi()
-    if rssi > arrived_rssi:
-        lcd.setText("Arrived!\n RSSI:%d" % rssi)
-        lcd.setRGB(0,255,0)
-        grovepi.digitalWrite(light_port,1)
-        time.sleep(1) #makes reading lcd easier
-    else:
-        if rssi > approaching_rssi:
-            lcd.setText("Approaching...\n RSSI:%d" % rssi)
-            grovepi.digitalWrite(light_port,1)
+    try:
+        rssi = find_rssi()
+        if rssi > arrived_rssi:
+            lcd.setText("Arrived!\n RSSI:%d" % rssi)
             lcd.setRGB(0,255,0)
-            time.sleep(1)
-            grovepi.digitalWrite(light_port,0)
-            lcd.setRGB(255,255,255)
-            time.sleep(1)
-        else:
-            lcd.setText("Out of range\n RSSI:%d" % rssi)
-            grovepi.digitalWrite(light_port,0)
-            lcd.setRGB(255,255,255)
+            grovepi.digitalWrite(light_port,1)
             time.sleep(1) #makes reading lcd easier
+        else:
+            if rssi > approaching_rssi:
+                lcd.setText("Approaching...\n RSSI:%d" % rssi)
+                grovepi.digitalWrite(light_port,1)
+                lcd.setRGB(0,255,0)
+                time.sleep(1)
+                grovepi.digitalWrite(light_port,0)
+                lcd.setRGB(255,255,255)
+                time.sleep(1)
+            else:
+                lcd.setText("Out of range\n RSSI:%d" % rssi)
+                grovepi.digitalWrite(light_port,0)
+                lcd.setRGB(255,255,255)
+                time.sleep(1) #makes reading lcd easier
+    except subprocess.CalledProcessError: #CalledProcessError results when beacon can't be detected
+        lcd.setText("Out of range\nNot connected" )
+        grovepi.digitalWrite(light_port,0)
+        lcd.setRGB(255,255,255)
+        time.sleep(1) #makes reading lcd easier
