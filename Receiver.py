@@ -1,5 +1,13 @@
 #Program for receiver RPi
 
+#SETUP (TO RUN ON BOOT):
+#Create a bash script to run this command:
+#sudo python /home/pi/Receiver.py
+#Then create crontab job for root user with the following:
+#shell=bin/bash
+#@reboot sh FILE_PATH >/home/pi/cronlog 2>&1
+#where FILE_PATH is the name of the script
+
 import subprocess
 import time
 import grovepi
