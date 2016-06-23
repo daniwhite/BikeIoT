@@ -15,7 +15,8 @@ approaching_rssi = -5 #rssi above this value says biker is approaching
 arrived_rssi = -1 #rssi above this value says biker has approaching
 
 def find_rssi():
-    rssi = subprocess.check_output("hcitool rssi %s" % beacon_addr,shell=True)
+    rssiProc = subprocess.Popen(['hcitool', 'rssi', beacon_addr],stdout=subprocess.PIPE)#creates process to find rssi
+    rssi = rssiProc.stdout.readline()
     rssi = rssi[19:len(rssi) -1]
     return int(rssi)
 
@@ -41,8 +42,9 @@ while(True): #main loop of program
                 grovepi.digitalWrite(light_port,0)
                 lcd.setRGB(255,255,255)
                 time.sleep(1) #makes reading lcd easier
-    except subprocess.CalledProcessError: #CalledProcessError results when beacon can't be detected
+    except ValueError: #If beacon is not connected, find_rssi() throws this error when it tries to cast an empty string to int
         lcd.setText("Out of range\nNot connected" )
         grovepi.digitalWrite(light_port,0)
         lcd.setRGB(255,255,255)
         time.sleep(1) #makes reading lcd easier
+        subprocess.Popen(['rfcomm', 'connect', 'rfcomm0', 'B8:27:EB:38:A7:AE'])#creates process to connect to beacon
