@@ -24,39 +24,38 @@ grovepi.pinMode(ledbar_port, "OUTPUT")
 lcd.setRGB(255,255,255)
 grovepi.ledBar_init(ledbar_port, 0)
 
-approaching_rssi = -5 # rssi above this value says biker is approaching
-arrived_rssi = -1 # rssi above this value says biker has approaching
+approaching_rssi = -11 # RSSI above this value says biker is approaching
+arrived_rssi = -1 # RSSI above this value says biker has approaching
+rssi_range = 10 # Lowest RSSI that registers on LED bar
 
 rssi_buffer = [-40,-40,-40]
 
 def find_raw_rssi():
-    # Create process to find rssi
+    # Create process to find RSSI
     rssiProc = subprocess.Popen(['hcitool', 'rssi', beacon_addr],
         stdout=subprocess.PIPE)
 
     rssi = rssiProc.stdout.readline()
     rssi = rssi[19:len(rssi) -1]
-    return int(rssi)
+    return float(rssi)
 
 def find_avg_rssi():
     rssi_buffer[2] = rssi_buffer[1]
     rssi_buffer[1] = rssi_buffer[0]
     rssi_buffer[0] = find_raw_rssi()
-    sum = 0
+    avg = 0
     for i in rssi_buffer:
-        sum += i
-    return sum / 3
+        avg += i
+    avg /= 3
+    return avg
 
-# Still being fine tuned
 def set_LEDBar(rssi):
-    rssi_range = 10
     rssi = rssi + rssi_range
     if rssi < 0:
         rssi = 0
     rssi /= rssi_range
     rssi *= 10
     rssi = int(rssi)
-    rssi += 20
     grovepi.ledBar_setLevel(ledbar_port, rssi)
     return rssi
 
@@ -71,24 +70,24 @@ def set_LED(rssi):
     else:
         grovepi.digitalWrite(light_port,0)
 
-def set_LCD(raw_rssi, adj_rssi):
+def set_LCD(raw_rssi):
     if rssi > arrived_rssi:
-        lcd.setText("Arrived!\n RAW:%d ADJ:%d" % (rssi, adj_rssi))
+        lcd.setText("Arrived!\n RAW:%d" % rssi)
         lcd.setRGB(0,255,0)
     elif rssi > approaching_rssi:
-        lcd.setText("Approaching...\n RAW:%d ADJ:%d" % (rssi, adj_rssi))
+        lcd.setText("Approaching...\n RAW:%d" % rssi)
         lcd.setRGB(0,127,0)
     else:
-        lcd.setText("Out of rang\n RAW:%d ADJ:%d" % (rssi, adj_rssi))
+        lcd.setText("Out of rang\n RAW:%d ADJ:%d" % rssi)
         lcd.setRGB(0,127,0)
 
 # Main loop of program
 while(True):
     try:
         rssi = find_avg_rssi()
-        adj_rssi = set_LEDBar(rssi)
-        set_LED(adj_rssi)
-        set_LCD(rssi,adj_rssi)
+        set_LEDBar(rssi)
+        set_LCD(rssi)
+        time.sleep(1)
 
     #If beacon is not connected, find_rssi() throws ValueError when it tries to
     #cast an empty string to int
