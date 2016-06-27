@@ -12,6 +12,7 @@ class GPIOClass
 public:
 	GPIOClass();
 	GPIOClass(string gnum);
+	~GPIOClass();
 	int export_gpio();
 	int unexport_gpio();
     int setdir_gpio(string dir);

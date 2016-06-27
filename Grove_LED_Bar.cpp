@@ -23,6 +23,14 @@
 */
 
 #include "Grove_LED_Bar.h"
+#include "GPIOClass.h"
+#include <sstream>
+#include <unistd.h>
+#include <iostream>
+#define byte uint8_t
+
+GPIOClass* gpioClock;
+GPIOClass* gpioData;
 
 Grove_LED_Bar::Grove_LED_Bar(unsigned char pinClock, unsigned char pinData, bool greenToRed)
 {
@@ -33,21 +41,35 @@ Grove_LED_Bar::Grove_LED_Bar(unsigned char pinClock, unsigned char pinData, bool
   for (byte i = 0; i < 10; i++)
     __state[i] = 0x00;  // persist state so individual leds can be toggled
 
-  pinMode(__pinClock, OUTPUT);
-  pinMode(__pinData, OUTPUT);
-}
+  //Convert pin chars to strings
+  string __strPinClock;
+  ostringstream __convertClock;
+  __convertClock << (int) __pinClock;
+   __strPinClock= __convertClock.str();
 
+   string __strPinData;
+   ostringstream __convertData;
+   __convertData << (int) __pinData;
+    __strPinData= __convertData.str();
+
+  gpioClock = new GPIOClass(__strPinClock);
+  gpioData = new GPIOClass(__strPinData);
+
+  gpioClock->setdir_gpio("out");
+  gpioData->setdir_gpio("out");
+}
 
 // Send the latch command
 void Grove_LED_Bar::latchData()
 {
-  digitalWrite(__pinData, LOW);
-  delayMicroseconds(10);
+  cout << "Latch called!" << endl;
+  gpioData->setval_gpio("0");
+  usleep(10);
 
   for (unsigned char i = 0; i < 4; i++)
   {
-    digitalWrite(__pinData, HIGH);
-    digitalWrite(__pinData, LOW);
+    gpioData->setval_gpio("1");
+    gpioData->setval_gpio("0");
   }
 }
 
@@ -57,11 +79,14 @@ void Grove_LED_Bar::sendData(unsigned int data)
 {
   for (unsigned char i = 0; i < 16; i++)
   {
-    unsigned int state = (data & 0x8000) ? HIGH : LOW;
-    digitalWrite(__pinData, state);
+    string state = (data & 0x8000) ? "1" : "0";
+    gpioData->setval_gpio(state);
 
-    state = digitalRead(__pinClock) ? LOW : HIGH;
-    digitalWrite(__pinClock, state);
+    string inputstate;
+    gpioClock->getval_gpio(inputstate);
+
+    state = stoi(inputstate) ? "1" : "0";
+    gpioClock->setval_gpio(state);
 
     data <<= 1;
   }
@@ -84,14 +109,16 @@ void Grove_LED_Bar::setGreenToRed(bool greenToRed)
 // Level 4.5 means 4 LEDs on and the 5th LED's half on
 void Grove_LED_Bar::setLevel(float level)
 {
-  level = max(0, min(10, level));
+  cout << "Set level called!" << endl;
+  if (level > 10) level = 10;
+  if (level < 0) level = 0;
   level *= 8; // there are 8 (noticable) levels of brightness on each segment
-  
+
   // Place number of 'level' of 1-bits on __state
   for (byte i = 0; i < 10; i++) {
     __state[i] = (level > 8) ? ~0 :
                  (level > 0) ? ~(~0 << byte(level)) : 0;
-               
+
     level -= 8;
   };
 
@@ -104,8 +131,11 @@ void Grove_LED_Bar::setLevel(float level)
 // brightness (0-1)
 void Grove_LED_Bar::setLed(unsigned char led, float brightness)
 {
-  led = max(1, min(10, led));
-  brightness = max(0, min(brightness, 1));
+  if (led > 10) led = 10;
+  if (led < 1) led = 1;
+
+  if (brightness > 1) brightness = 1;
+  if (brightness < 0) brightness = 0;
 
   // Zero based index 0-9 for bitwise operations
   led--;
@@ -125,7 +155,8 @@ void Grove_LED_Bar::setLed(unsigned char led, float brightness)
 // led (1-10)
 void Grove_LED_Bar::toggleLed(unsigned char led)
 {
-  led = max(1, min(10, led));
+  if (led > 10) led = 10;
+  if (led < 1) led = 1;
 
   // Zero based index 0-9 for bitwise operations
   led--;
