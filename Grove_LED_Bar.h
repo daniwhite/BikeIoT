@@ -50,6 +50,11 @@ private:
   void latchData(void);              // Load data into the latch register
   void setData(unsigned char bits[]);//Set data array
 
+  //Wrapper functions to make switching GPIO libraries easy
+	void pinInit(void);
+	void setPinVal(unsigned char pin, bool state);
+	bool getPinVal(unsigned char pin);
+
 public:
 
   Grove_LED_Bar(unsigned char pinClock, unsigned char pinData, bool greenToRed);  // Initialize
