@@ -12,15 +12,37 @@
 
 import subprocess
 import time
-
-beacon_addr = 'B8:27:EB:38:A7:AE' # MAC address of beacon RPi
-ledbar_port = 2
+import RPi.GPIO as GPIO
 
 approaching_rssi = -11 # RSSI above this value says biker is approaching
 arrived_rssi = -1 # RSSI above this value says biker has approaching
 rssi_range = 10 # Lowest RSSI that registers on LED bar
 
 rssi_buffer = [-40,-40,-40]
+
+connected = False
+
+beacon_addr = 'B8:27:EB:38:A7:AE' # MAC address of beacon RPi
+approaching_light = 15
+arrived_light = 14
+
+GPIO.setmode(GPIO.BCM) # GPIO will use Broadcom pin numbers
+GPIO.setwarnings(False)
+
+GPIO.setup(approaching_light, GPIO.OUT, initial = GPIO.LOW)
+GPIO.setup(arrived_light, GPIO.OUT, initial = GPIO.LOW)
+
+def checkConnection():
+    connectProc = subprocess.Popen(['hcitool', 'con'],
+        stdout=subprocess.PIPE)
+    connectProc.stdout.readline() # Moves down one line
+    connections = connectProc.stdout.readline()
+    if connections != "":
+        GPIO.output(approaching_light, GPIO.HIGH)
+    else:
+        GPIO.output(approaching_light, GPIO.LOW)
+        #Creates process to connect to beacon
+        subprocess.Popen(['rfcomm', 'connect', 'rfcomm0', 'B8:27:EB:38:A7:AE'])
 
 def find_raw_rssi():
     # Create process to find RSSI
@@ -41,23 +63,7 @@ def find_avg_rssi():
     avg /= 3
     return avg
 
-def set_LEDBar(rssi):
-    rssi = rssi + rssi_range
-    if rssi < 0:
-        rssi = 0
-    rssi /= rssi_range
-    rssi *= 10
-    rssi = int(rssi)
-    return rssi
-
 # Main loop of program
 while(True):
-    try:
-        rssi = find_avg_rssi()
-        time.sleep(1)
-
-    #If beacon is not connected, find_rssi() throws ValueError when it tries to
-    #cast an empty string to int
-    except ValueError:
-        #Creates process to connect to beacon
-        subprocess.Popen(['rfcomm', 'connect', 'rfcomm0', 'B8:27:EB:38:A7:AE'])
+    checkConnection()
+    time.sleep(1)
