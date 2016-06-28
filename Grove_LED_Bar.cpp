@@ -23,14 +23,12 @@
 */
 
 #include "Grove_LED_Bar.h"
-#include "GPIOClass.h"
 #include <sstream>
 #include <unistd.h>
 #include <iostream>
+#include <pigpio.h>
 #define byte uint8_t
-
-GPIOClass* gpioClock;
-GPIOClass* gpioData;
+using namespace std;
 
 Grove_LED_Bar::Grove_LED_Bar(unsigned char pinClock, unsigned char pinData, bool greenToRed)
 {
@@ -46,61 +44,23 @@ Grove_LED_Bar::Grove_LED_Bar(unsigned char pinClock, unsigned char pinData, bool
 
 void Grove_LED_Bar::pinInit()
 {
-  string __strPinClock;
-  ostringstream __convertClock;
-  __convertClock << (int) __pinClock;
-  __strPinClock= __convertClock.str();
+  gpioInitialise();
 
-  string __strPinData;
-  ostringstream __convertData;
-  __convertData << (int) __pinData;
-  __strPinData= __convertData.str();
+  gpioSetMode(__pinClock, PI_OUTPUT);
+  gpioSetMode(__pinData, PI_OUTPUT);
 
-  gpioClock = new GPIOClass(__strPinClock);
-  gpioData = new GPIOClass(__strPinData);
-
-  gpioClock->setdir_gpio("out");
-  gpioData->setdir_gpio("out");
+  gpioSetPullUpDown(__pinClock, PI_PUD_UP);
+  gpioSetPullUpDown(__pinData, PI_PUD_UP);
 }
 
 void Grove_LED_Bar::setPinVal(unsigned char pin, bool state)
 {
-  if(pin == __pinClock)
-  {
-      if (state)
-      {
-        gpioClock->setval_gpio("1");
-      }
-      else
-      {
-        gpioClock->setval_gpio("0");
-      }
-  }
-  else
-  {
-    if (state)
-    {
-      gpioData->setval_gpio("1");
-    }
-    else
-    {
-      gpioData->setval_gpio("0");
-    }
-  }
+  gpioWrite(pin, state);
 }
 
 bool Grove_LED_Bar::getPinVal(unsigned char pin)
 {
-  string inputstate;
-  if (pin == __pinClock)
-  {
-    gpioClock->getval_gpio(inputstate);
-  }
-  else
-  {
-    gpioData->getval_gpio(inputstate);
-  }
-  return stoi(inputstate);
+  return gpioRead(pin);
 }
 
 // Send the latch command
