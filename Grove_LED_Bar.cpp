@@ -64,16 +64,23 @@ bool Grove_LED_Bar::getPinVal(unsigned char pin)
 }
 
 // Send the latch command
+// See pg. 15 of this document:
+// https://www.seeedstudio.com/wiki/images/9/98/MY9221_DS_1.0.pdf
 void Grove_LED_Bar::latchData()
 {
+  setPinVal(__pinClock, false);
   setPinVal(__pinData, true);
-  usleep(10);
+  usleep(250);
 
   for (unsigned char i = 0; i < 4; i++)
   {
     setPinVal(__pinData, true);
+    usleep(250);
     setPinVal(__pinData, false);
+    usleep(250);
   }
+
+    usleep(250);
 }
 
 
@@ -85,8 +92,7 @@ void Grove_LED_Bar::sendData(unsigned int data)
     bool state = (data & 0x8000) ? true : false;
     setPinVal(__pinData, state);
 
-    state = getPinVal(__pinClock);
-
+    state = getPinVal(__pinClock) ? false : true;
     setPinVal(__pinClock, state);
 
     data <<= 1;
