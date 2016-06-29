@@ -11,8 +11,10 @@
 # where FILE_PATH is the name of the script
 
 from bluepy import btle
-import time
 import RPi.GPIO as GPIO
+
+LOOP_ON = '01'
+LOOP_OFF = '00'
 
 # Initalize GPIO
 approaching_light = 15
@@ -23,8 +25,6 @@ GPIO.setwarnings(False)
 
 GPIO.setup(approaching_light, GPIO.OUT, initial=GPIO.LOW)
 GPIO.setup(arrived_light, GPIO.OUT, initial=GPIO.LOW)
-
-connected = False
 
 # Initalize bluetooth
 sc = btle.Scanner(0)
@@ -39,5 +39,15 @@ while(True):
             beacon_index = i
     if (beacon_index > -1):
         print "Beacon found!"
+        GPIO.output(approaching_light, GPIO.HIGH)
+
+        data = devices[beacon_index].getValueText(1)
+        if data == LOOP_ON:
+            GPIO.output(arrived_light, GPIO.HIGH)
+            print "On"
+        else:
+            GPIO.output(arrived_light, GPIO.LOW)
+            print "Off"
     else:
         print "Out of range."
+        GPIO.output(approaching_light, GPIO.LOW)
