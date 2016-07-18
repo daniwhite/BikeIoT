@@ -31,7 +31,7 @@ GPIO.setup(loop_light, GPIO.OUT, initial=GPIO.LOW)
 
 # Initalize bluetooth
 sc = btle.Scanner(0)
-beacon_addr = 'b8:27:eb:38:a7:ae'  # MAC address of beacon
+beacon_addr = 'b8:27:eb:97:3c:f1'  # MAC address of beacon
 
 
 # Function that accounts for past light states, returns true if light is on
