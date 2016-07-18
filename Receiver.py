@@ -50,40 +50,42 @@ def setLight(currentState, lastState, light):
         return False
 
 # Main loop of program
-while(True):
-    devices = sc.scan(2)
-    beacon_index = -1
-    for i, d in enumerate(devices):
-        if d.addr == beacon_addr:
-            beacon_index = i
-    data = devices[beacon_index].getValueText(1)
-    if setLight(beacon_index > -1, last_connectionState, connection_light):
-        print data
-        setLight(data == LOOP_ON, last_loop_state, loop_light)
-    last_connectionState = beacon_index > -1
-    last_loop_state = data == LOOP_ON
-'''
-    connectionState = beacon_index > -1
-    if  or last_connectionState:
-        print "Beacon found!"
+try:
+    while(True):
+        devices = sc.scan(2)
+        beacon_index = -1
+        for i, d in enumerate(devices):
+            if d.addr == beacon_addr:
+                beacon_index = i
         data = devices[beacon_index].getValueText(1)
-        if beacon_index == -1:
+        if setLight(beacon_index > -1, last_connectionState, connection_light):
+            print data
+            setLight(data == LOOP_ON, last_loop_state, loop_light)
+        last_connectionState = beacon_index > -1
+        last_loop_state = data == LOOP_ON
+        '''
+        connectionState = beacon_index > -1
+        if  or last_connectionState:
+            print "Beacon found!"
+            data = devices[beacon_index].getValueText(1)
+            if beacon_index == -1:
 
-            if last_loop_state:
-                print "Caught by last_loop_state"
-                data = LOOP_ON
+                if last_loop_state:
+                    print "Caught by last_loop_state"
+                    data = LOOP_ON
+                    print "On"
+            GPIO.output(connection_light, GPIO.HIGH)
+            print data
+            if data == LOOP_ON:
+                GPIO.output(loop_light, GPIO.HIGH)
+                last_loop_state = True
                 print "On"
-        GPIO.output(connection_light, GPIO.HIGH)
-        print data
-        if data == LOOP_ON:
-            GPIO.output(loop_light, GPIO.HIGH)
-            last_loop_state = True
-            print "On"
+            else:
+                GPIO.output(loop_light, GPIO.LOW)
+                last_loop_state = False
+                print "Off"
         else:
-            GPIO.output(loop_light, GPIO.LOW)
-            last_loop_state = False
-            print "Off"
-    else:
-
-    last_connectionState = beacon_index > -1
-'''
+        last_connectionState = beacon_index > -1
+        '''
+except btle.BTLEException:
+    print "Must run as root user"
