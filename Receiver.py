@@ -63,29 +63,5 @@ try:
             setLight(data == LOOP_ON, last_loop_state, loop_light)
         last_connectionState = beacon_index > -1
         last_loop_state = data == LOOP_ON
-        '''
-        connectionState = beacon_index > -1
-        if  or last_connectionState:
-            print "Beacon found!"
-            data = devices[beacon_index].getValueText(1)
-            if beacon_index == -1:
-
-                if last_loop_state:
-                    print "Caught by last_loop_state"
-                    data = LOOP_ON
-                    print "On"
-            GPIO.output(connection_light, GPIO.HIGH)
-            print data
-            if data == LOOP_ON:
-                GPIO.output(loop_light, GPIO.HIGH)
-                last_loop_state = True
-                print "On"
-            else:
-                GPIO.output(loop_light, GPIO.LOW)
-                last_loop_state = False
-                print "Off"
-        else:
-        last_connectionState = beacon_index > -1
-        '''
 except btle.BTLEException:
     print "Must run as root user"
