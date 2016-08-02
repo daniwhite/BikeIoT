@@ -4,6 +4,7 @@ import subprocess
 import serial
 from bluepy import btle
 import time
+import picamera
 
 LOOP_ON = '01'
 LOOP_OFF = '00'
@@ -24,6 +25,9 @@ ser = serial.Serial(device, baudrate)
 # Join gateway
 ser.write('AT+JOIN\n')
 
+# Initialie camera
+cam = picamera.PiCamera()
+
 btTime = time.time()  # Start time (for bluetooth cycles)
 loraTime = time.time()  # Start time (for LoRa cycles)
 
@@ -34,11 +38,21 @@ def getLoopState():
     return loop_state  # Will eventually do something snazzier
 
 while(True):
+    imageTitle = 'Images/'
     if getLoopState():
             cmdstring = cmdstring + LOOP_ON
+            imageTitle += 'bikes/'
     else:
         cmdstring = cmdstring + LOOP_OFF
     broadcastProc = subprocess.call(cmdstring, shell=True)
+
+    # Take image
+    imageTitle += time.ctime()
+    imageTitle += '.jpg'
+    # Get rid of bad characters, but keep text readable
+    imageTitle = imageTitle.replace(' ', '_')
+    imageTitle = imageTitle.replace(':', '-')
+    cam.capture(imageTitle)
 
     # Check for new devices
     scanDevices = sc.scan(SCAN_LEN)
