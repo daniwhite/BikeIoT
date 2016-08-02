@@ -27,7 +27,7 @@ ser.write('AT+JOIN\n')
 btTime = time.time()  # Start time (for bluetooth cycles)
 loraTime = time.time()  # Start time (for LoRa cycles)
 
-loop_state = input("Loop state: ")  # Temporary
+loop_state = input('Loop state: ')  # Temporary
 
 
 def getLoopState():
@@ -49,9 +49,9 @@ while(True):
         else:
             devices.append(sDev)
     # Print device count
-    print "Devices found since ",
+    print 'Devices found since ',
     print time.ctime(btTime),
-    print " : %d" % len(devices)
+    print ' : %d' % len(devices)
     # Check if we need to refresh the list
     if(time.time() - btTime > BT_PERIOD):
         devices = []
@@ -60,6 +60,6 @@ while(True):
     # Lora broadcast
     if(time.time() - loraTime > LORA_PERIOD):
         loraTime = time.time()
-        ser.write("AT+SEND=I'm alive\n")
+        ser.write('AT+SEND=Alive\n')
     # Loop end code
     time.sleep(2)
