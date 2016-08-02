@@ -9,7 +9,7 @@ LOOP_ON = '01'
 LOOP_OFF = '00'
 
 BT_PERIOD = 60  # How often to clear the bluetooth device list and start over
-LORA_PERIOD = 120  # How many seconds between each Lora braodcast
+LORA_PERIOD = 5  # How many seconds between each Lora braodcast
 SCAN_LEN = 2  # How long to scan bluetooth at one time
 
 # Send bluetooth message
@@ -60,6 +60,10 @@ while(True):
     # Lora broadcast
     if(time.time() - loraTime > LORA_PERIOD):
         loraTime = time.time()
-        ser.write('AT+SEND=Alive\n')
+        msg = 'AT+SEND=' + \
+            '{"aliveMsg":"Alive",' + \
+            '"devCount":"' + str(len(devices)) + \
+            '" }' + '\n'
+        ser.write(msg)
     # Loop end code
     time.sleep(2)
