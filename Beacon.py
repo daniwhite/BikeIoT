@@ -5,6 +5,7 @@ import serial
 from bluepy import btle
 import time
 import picamera
+import grovepi
 
 LOOP_ON = '01'
 LOOP_OFF = '00'
@@ -12,6 +13,10 @@ LOOP_OFF = '00'
 BT_PERIOD = 60  # How often to clear the bluetooth device list and start over
 LORA_PERIOD = 5  # How many seconds between each Lora braodcast
 SCAN_LEN = 2  # How long to scan bluetooth at one time
+
+# Set up grovepi
+LOUDNESS_SENSOR = 0  # Connect to A0
+TEMP_HUM_SENSOR = 6  # Connect to D6
 
 # Send bluetooth message
 cmdstring = 'sudo hcitool -i hci0 cmd 0x08 0x0008 06 02 01 '
@@ -25,7 +30,7 @@ ser = serial.Serial(device, baudrate)
 # Join gateway
 ser.write('AT+JOIN\n')
 
-# Initialie camera
+# Initialize camera
 cam = picamera.PiCamera()
 
 btTime = time.time()  # Start time (for bluetooth cycles)
@@ -71,13 +76,21 @@ while(True):
         devices = []
         btTime = time.time()
 
+    # Get sensor data
+    loudness = grovepi.analogRead(LOUDNESS_SENSOR)
+    [temp, hum] = grovepi.dht(TEMP_HUM_SENSOR, module_type=0)
+    print 'loudness: ' + str(loudness)
+    print 'temperature: ' + str(temp)
+    print 'humidity: ' + str(hum)
+
     # Lora broadcast
     if(time.time() - loraTime > LORA_PERIOD):
         loraTime = time.time()
         msg = 'AT+SEND=' + \
-            '{"aliveMsg":"Alive",' + \
-            '"devCount":"' + str(len(devices)) + \
-            '" }' + '\n'
+            str(len(devices)) + ',' + \
+            str(loudness) + ',' + \
+            str(temp) + ',' + \
+            str(hum) + '\n'
         ser.write(msg)
     # Loop end code
     time.sleep(2)
