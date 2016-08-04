@@ -82,8 +82,11 @@ while(True):
     if(lora_command('AT+NJS\n', ['0\r\n', '1\r\n']) == '0\r\n'):
         lora_joinNetwork()
 
+    loop_state = getLoopState()
     # Bluetooth broadcast
-    bt_sendLoopState(getLoopState())
+    bt_sendLoopState(loop_state)
+    if loop_state:
+        takeImg()
 
     # Check for new devices
     scanDevices = sc.scan(SCAN_LEN)
