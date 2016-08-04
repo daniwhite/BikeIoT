@@ -27,8 +27,6 @@ sc = btle.Scanner(0)
 device = '/dev/ttyUSB0'
 baudrate = 115200
 ser = serial.Serial(device, baudrate)
-# Join gateway
-ser.write('AT+JOIN\n')
 
 # Initialize camera
 cam = picamera.PiCamera()
@@ -42,7 +40,34 @@ loop_state = input('Loop state: ')  # Temporary
 def getLoopState():
     return loop_state  # Will eventually do something snazzier
 
+
+# Sends an AT command, then returns its response
+def command(str, responses=['OK\r\n']):
+    ser.write(str)
+    ser.readline()
+    msg = ''
+    while (msg not in responses):
+        try:
+            msg = ser.readline()
+        except OSError:
+            print 'OS Exception'
+            print 'Is something else accessing the serial port, like minicom?'
+        except serial.SerialException:
+            print 'Serial Exception'
+            print 'Is something else accessing the serial port, like minicom?'
+    return msg
+
+
+def joinNetwork():
+    str = ''
+    while(not (str == 'Successfully joined network\r\n')):
+        str = command('AT+JOIN\n', [
+            'Join Error - Failed to join network\r\n',
+            'Successfully joined network\r\n'])
+
 while(True):
+    if(command('AT+NJS\n', ['0\r\n', '1\r\n']) == '0\r\n'):
+        joinNetwork()
     imageTitle = 'Images/'
     if getLoopState():
             cmdstring = cmdstring + LOOP_ON
@@ -91,6 +116,6 @@ while(True):
             str(loudness) + ',' + \
             str(temp) + ',' + \
             str(hum) + '\n'
-        ser.write(msg)
+        command(msg)
     # Loop end code
     time.sleep(2)
