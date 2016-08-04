@@ -17,6 +17,7 @@ SCAN_LEN = 2  # How long to scan bluetooth at one time
 # Set up grovepi
 LOUDNESS_SENSOR = 0  # Connect to A0
 TEMP_HUM_SENSOR = 6  # Connect to D6
+SWITCH = 5
 
 # Send bluetooth message
 devices = []
@@ -33,8 +34,6 @@ cam = picamera.PiCamera()
 btTime = time.time()  # Start time (for bluetooth cycles)
 loraTime = time.time()  # Start time (for LoRa cycles)
 
-loop_state = input('Loop state: ')  # Temporary
-
 
 def bt_sendLoopState(loopState):
     cmdstring = 'sudo hcitool -i hci0 cmd 0x08 0x0008 06 02 01 '
@@ -43,10 +42,11 @@ def bt_sendLoopState(loopState):
     else:
         cmdstring = cmdstring + LOOP_OFF
     subprocess.call(cmdstring, shell=True)
+    subprocess.call('sudo hciconfig hci0 leadv 3', shell=True)
 
 
 def getLoopState():
-    return loop_state  # Will eventually do something snazzier
+    return grovepi.digitalRead(SWITCH)  # Stand-in
 
 
 # Sends an AT command, then returns its response
