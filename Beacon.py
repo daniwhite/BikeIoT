@@ -19,7 +19,6 @@ LOUDNESS_SENSOR = 0  # Connect to A0
 TEMP_HUM_SENSOR = 6  # Connect to D6
 
 # Send bluetooth message
-cmdstring = 'sudo hcitool -i hci0 cmd 0x08 0x0008 06 02 01 '
 devices = []
 sc = btle.Scanner(0)
 
@@ -37,52 +36,54 @@ loraTime = time.time()  # Start time (for LoRa cycles)
 loop_state = input('Loop state: ')  # Temporary
 
 
+def bt_sendLoopState(loopState):
+    cmdstring = 'sudo hcitool -i hci0 cmd 0x08 0x0008 06 02 01 '
+    if loopState:
+            cmdstring = cmdstring + LOOP_ON
+    else:
+        cmdstring = cmdstring + LOOP_OFF
+    subprocess.call(cmdstring, shell=True)
+
+
 def getLoopState():
     return loop_state  # Will eventually do something snazzier
 
 
 # Sends an AT command, then returns its response
-def command(str, responses=['OK\r\n']):
+def lora_command(str, responses=['OK\r\n']):
     ser.write(str)
     ser.readline()
     msg = ''
     while (msg not in responses):
         try:
             msg = ser.readline()
-        except OSError:
-            print 'OS Exception'
-            print 'Is something else accessing the serial port, like minicom?'
-        except serial.SerialException:
-            print 'Serial Exception'
-            print 'Is something else accessing the serial port, like minicom?'
+        except OSError, serial.SerialException:
+            print 'Unable to read. Is something else using the serial port?'
     return msg
 
 
-def joinNetwork():
+# Send AT command to join LoRa network
+def lora_joinNetwork():
     str = ''
     while(not (str == 'Successfully joined network\r\n')):
-        str = command('AT+JOIN\n', [
+        str = lora_command('AT+JOIN\n', [
             'Join Error - Failed to join network\r\n',
             'Successfully joined network\r\n'])
 
-while(True):
-    if(command('AT+NJS\n', ['0\r\n', '1\r\n']) == '0\r\n'):
-        joinNetwork()
-    imageTitle = 'Images/'
-    if getLoopState():
-            cmdstring = cmdstring + LOOP_ON
-            imageTitle += 'bikes/'
-    else:
-        cmdstring = cmdstring + LOOP_OFF
-    broadcastProc = subprocess.call(cmdstring, shell=True)
 
-    # Take image
-    imageTitle += time.ctime()
-    imageTitle += '.jpg'
-    # Get rid of bad characters, but keep text readable
+def takeImg(folderPath='Images/'):
+    imageTitle = folderPath + time.ctime() + '.jpg'
     imageTitle = imageTitle.replace(' ', '_')
     imageTitle = imageTitle.replace(':', '-')
     cam.capture(imageTitle)
+
+while(True):
+    # Check LoRa network status
+    if(lora_command('AT+NJS\n', ['0\r\n', '1\r\n']) == '0\r\n'):
+        lora_joinNetwork()
+
+    # Bluetooth broadcast
+    bt_sendLoopState(getLoopState())
 
     # Check for new devices
     scanDevices = sc.scan(SCAN_LEN)
@@ -116,6 +117,7 @@ while(True):
             str(loudness) + ',' + \
             str(temp) + ',' + \
             str(hum) + '\n'
-        command(msg)
+        lora_command(msg)
+
     # Loop end code
     time.sleep(2)
