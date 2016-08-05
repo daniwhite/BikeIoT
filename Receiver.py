@@ -10,9 +10,6 @@ LOOP_OFF = '00'
 connection_light = 15
 loop_light = 14
 
-last_connectionState = False
-last_loop_state = False
-
 GPIO.setmode(GPIO.BCM)  # GPIO will use Broadcom pin numbers
 GPIO.setwarnings(False)
 
@@ -21,24 +18,8 @@ GPIO.setup(loop_light, GPIO.OUT, initial=GPIO.LOW)
 
 # Initalize bluetooth
 sc = btle.Scanner(0)
-SCAN_LEN = 10
+SCAN_LEN = 2  # Shortest length that consistantly picks up signal
 key = '42696379636c65'  # Special header on bluetooth message sent by beacon
-
-
-# Function that accounts for past light states, returns true if light is on
-def setLight(currentState, lastState, light):
-    if currentState:
-        print "Light %d currently true" % light
-        GPIO.output(light, GPIO.HIGH)
-        return True
-    elif lastState:
-        print "Light %d caught by last state" % light
-        GPIO.output(light, GPIO.HIGH)
-        return True
-    else:
-        print "Light %d off" % light
-        GPIO.output(light, GPIO.LOW)
-        return False
 
 # Main loop of program
 try:
@@ -51,10 +32,18 @@ try:
                 if msg[:len(msg) - 2] == key:
                     data = msg[len(msg) - 2:]
                     break
-        if setLight(not (data == ''), last_connectionState, connection_light):
-            print data
-            setLight(data == LOOP_ON, last_loop_state, loop_light)
-        last_connectionState = not (data == '')
-        last_loop_state = data == LOOP_ON
+        # Set lights
+        beaconDetected = not (data == '')
+        print 'Connection light: %s' % beaconDetected
+        GPIO.output(connection_light, beaconDetected)
+
+        print data
+        loop_state = data == LOOP_ON
+        print 'Loop light: %s' % loop_state
+        GPIO.output(loop_light, loop_state)
+        print
 except btle.BTLEException:
-    print "Must run as root user"
+    print 'Must run as root user'
+except:
+    GPIO.cleanup()
+    raise
