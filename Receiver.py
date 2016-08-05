@@ -28,39 +28,31 @@ dataBuf = []
 # Main loop of program
 try:
     while(True):
+        # Update scan buffer
         scan = sc.scan(SCAN_LEN)
         scanBuf.append(scan)
         if(len(scanBuf) > CONNECTION_PERSIST_LEN):
             scanBuf.pop(0)
-        data = ''
-        for d in scan:
-            print d.getValueText(7)
-            msg = d.getValueText(7)
-            if (not (msg is None)):
-                if msg[:len(msg) - 2] == key:
-                    data = msg[len(msg) - 2:]
-                    if not (data == ''):
-                        dataBuf.append(data)
-                    break
 
+        # Set up loop
+        data = ''
         beaconDetected = False
+        newScan = True
         for s in scanBuf:
-            print 'For loop endered'
             for d in s:
-                print 'Inner loop entered'
                 msg = d.getValueText(7)
-                print 'Value text retreived'
                 print msg
                 if (not (msg is None)):
-                    print 'Confirmed it is not none'
                     if msg[:len(msg) - 2] == key:
-                        print 'Checked for key'
                         beaconDetected = True
+                        data = msg[len(msg) - 2:]
+                        if newScan and not (data == ''):
+                            dataBuf.insert(0, data)
+            newScan = False
 
-        print beaconDetected
         # Keep buffer at correct length
         if len(dataBuf) > LOOP_PERSIST_LEN:
-            dataBuf.pop(0)
+            dataBuf.pop(len(dataBuf) - 1)
         loop_state = LOOP_ON in dataBuf
 
         # Set lights
