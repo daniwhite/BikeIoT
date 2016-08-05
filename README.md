@@ -1,4 +1,22 @@
 # bike-project
+
+Hardware used
+=============
+**Receiver**: 
+- Raspberry Pi 3
+
+**Beacon**: 
+- Raspberry Pi
+- MultiTech mDot X1P-SMA-1
+- SparkFun XBee Explorer Dongle
+- GrovePi
+- Grove Loudness Sensor
+- Grove Temperature and Humidity Sensor
+- Rasberry Pi Camera Board, Rev 1.3
+
+**Other**:
+- MultiTech MultiConnect AEP Conduit, with LoRa mCard
+
 Setup
 =====
 Beacon
