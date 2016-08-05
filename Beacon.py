@@ -32,19 +32,19 @@ ser = serial.Serial(device, baudrate)
 # Initialize camera
 cam = picamera.PiCamera()
 
-btTime = time.time()  # Start time (for bluetooth cycles)
-loraTime = time.time()  # Start time (for LoRa cycles)
+bt_time = time.time()  # Start time (for bluetooth cycles)
+lora_time = time.time()  # Start time (for LoRa cycles)
 
 
 # Defines bluetooth function that will be run as separate process
 def bt_process():
     while(True):
-        loopState = getLoopState()
-        bt_sendLoopState(loopState)
-broadcastProc = Process(target=bt_process)
+        loopstate = get_loopstate()
+        broadcast(loopstate)
+broadcast_proc = Process(target=bt_process)
 
 
-def bt_sendLoopState(loopState):
+def broadcast(loopstate):
     cmdstring = 'sudo hcitool -i hci0 cmd '  # Send cmd to hci0
     cmdstring += '0x08 '  # Set group to BLE
     cmdstring += '0x0008 '  # Set command to HCI_LE_Set_Advertising_Data
@@ -61,7 +61,7 @@ def bt_sendLoopState(loopState):
     cmdstring += '07 '  # GAP value (07 = 128 Bit Complete Service UUID List)
     cmdstring += '42 69 63 79 63 6c 65 '  # Header to identify beacon message-
     # - and it's also is Bicycle in ASCII!
-    if loopState:
+    if loopstate:
             cmdstring = cmdstring + LOOP_ON
     else:
         cmdstring = cmdstring + LOOP_OFF
@@ -69,7 +69,7 @@ def bt_sendLoopState(loopState):
     subprocess.call('sudo hciconfig hci0 leadv 3', shell=True)
 
 
-def getLoopState():
+def get_loopstate():
     return grovepi.digitalRead(SWITCH)  # Stand-in
 
 
@@ -87,7 +87,7 @@ def lora_command(str, responses=['OK\r\n']):
 
 
 # Send AT command to join LoRa network
-def lora_joinNetwork():
+def lora_join_network():
     str = ''
     while(not (str == 'Successfully joined network\r\n')):
         str = lora_command('AT+JOIN\n', [
@@ -95,40 +95,40 @@ def lora_joinNetwork():
             'Successfully joined network\r\n'])
 
 
-def takeImg(folderPath='Images/'):
-    imageTitle = folderPath + time.ctime() + '.jpg'
-    imageTitle = imageTitle.replace(' ', '_')
-    imageTitle = imageTitle.replace(':', '-')
-    cam.capture(imageTitle)
+def take_img(folder_path='Images/'):
+    title = folder_path + time.ctime() + '.jpg'
+    title = title.replace(' ', '_')
+    title = title.replace(':', '-')
+    cam.capture(title)
 
 # Start bluetooth broadcast in parallel
-broadcastProc.start()
+broadcast_proc.start()
 # Main loop
 while(True):
     try:
         # Check LoRa network status
         if(lora_command('AT+NJS\n', ['0\r\n', '1\r\n']) == '0\r\n'):
-            lora_joinNetwork()
+            lora_join_network()
 
-        if getLoopState():
-            takeImg()
+        if get_loopstate():
+            take_img()
 
         # Check for new devices
-        scanDevices = sc.scan(SCAN_LEN)
-        for sDev in scanDevices:
+        scan_devices = sc.scan(SCAN_LEN)
+        for s_dev in scan_devices:
             for dev in devices:
-                if dev.addr == sDev.addr:
+                if dev.addr == s_dev.addr:
                     break
             else:
-                devices.append(sDev)
+                devices.append(s_dev)
         # Print device count
         print 'Devices found since ',
-        print time.ctime(btTime),
+        print time.ctime(bt_time),
         print ' : %d' % len(devices)
         # Check if we need to refresh the list
-        if(time.time() - btTime > BT_PERIOD):
+        if(time.time() - bt_time > BT_PERIOD):
             devices = []
-            btTime = time.time()
+            bt_time = time.time()
 
         # Get sensor data
         loudness = grovepi.analogRead(LOUDNESS_SENSOR)
@@ -138,8 +138,8 @@ while(True):
         print 'humidity: ' + str(hum)
 
         # Lora broadcast
-        if(time.time() - loraTime > LORA_PERIOD):
-            loraTime = time.time()
+        if(time.time() - lora_time > LORA_PERIOD):
+            lora_time = time.time()
             msg = 'AT+SEND=' + \
                 str(len(devices)) + ',' + \
                 str(loudness) + ',' + \
@@ -148,7 +148,7 @@ while(True):
             lora_command(msg)
     except:
         # Cleanup code
-        broadcastProc.terminate()
+        broadcast_proc.terminate()
         subprocess.call('sudo hciconfig hci0 down', shell=True)
         ser.close()
         raise

@@ -7,58 +7,57 @@ LOOP_ON = '01'
 LOOP_OFF = '00'
 
 # Initalize GPIO
-connection_light = 15
+comm_light = 15
 loop_light = 14
 
 GPIO.setmode(GPIO.BCM)  # GPIO will use Broadcom pin numbers
 GPIO.setwarnings(False)
 
-GPIO.setup(connection_light, GPIO.OUT, initial=GPIO.LOW)
+GPIO.setup(comm_light, GPIO.OUT, initial=GPIO.LOW)
 GPIO.setup(loop_light, GPIO.OUT, initial=GPIO.LOW)
 
 # Initalize bluetooth
 SCAN_LEN = 0.5
-CONNECTION_PERSIST_LEN = 6
-LOOP_PERSIST_LEN = 1
+COMM_BUF_LEN = 6
+LOOP_BUF_LEN = 1
 key = '42696379636c65'  # Special header on bluetooth message sent by beacon
 sc = btle.Scanner(0)
-scanBuf = []
-dataBuf = []
+scanbuf = []
+databuf = []
 
 # Main loop of program
 try:
     while(True):
         # Update scan buffer
         scan = sc.scan(SCAN_LEN)
-        scanBuf.append(scan)
-        if(len(scanBuf) > CONNECTION_PERSIST_LEN):
-            scanBuf.pop(0)
+        scanbuf.append(scan)
+        if(len(scanbuf) > COMM_BUF_LEN):
+            scanbuf.pop(0)
 
         # Set up loop
         data = ''
-        beaconDetected = False
-        newScan = True
-        for s in scanBuf:
+        beacon_detected = False
+        new_scan = True
+        for s in scanbuf:
             for d in s:
                 msg = d.getValueText(7)
                 print msg
                 if (not (msg is None)):
                     if msg[:len(msg) - 2] == key:
-                        beaconDetected = True
+                        beacon_detected = True
                         data = msg[len(msg) - 2:]
-                        if newScan and not (data == ''):
-                            dataBuf.insert(0, data)
-            newScan = False
+                        if new_scan and not (data == ''):
+                            databuf.insert(0, data)
+            new_scan = False
 
         # Keep buffer at correct length
-        if len(dataBuf) > LOOP_PERSIST_LEN:
-            dataBuf.pop(len(dataBuf) - 1)
-        loop_state = LOOP_ON in dataBuf
+        if len(databuf) > LOOP_BUF_LEN:
+            databuf.pop(len(databuf) - 1)
+        loop_state = LOOP_ON in databuf
 
         # Set lights
-        print 'Connection light: %s' % beaconDetected
-        GPIO.output(connection_light, beaconDetected)
-
+        print 'Comm light: %s' % beacon_detected
+        GPIO.output(comm_light, beacon_detected)
         print 'Loop light: %s' % loop_state
         GPIO.output(loop_light, loop_state)
         print
