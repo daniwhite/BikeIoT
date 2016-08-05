@@ -6,6 +6,7 @@ from bluepy import btle
 import time
 import picamera
 import grovepi
+from multiprocessing import Process
 
 LOOP_ON = '01'
 LOOP_OFF = '00'
@@ -19,7 +20,7 @@ LOUDNESS_SENSOR = 0  # Connect to A0
 TEMP_HUM_SENSOR = 6  # Connect to D6
 SWITCH = 5
 
-# Send bluetooth message
+# Setup bluetooth
 devices = []
 sc = btle.Scanner(0)
 
@@ -33,6 +34,14 @@ cam = picamera.PiCamera()
 
 btTime = time.time()  # Start time (for bluetooth cycles)
 loraTime = time.time()  # Start time (for LoRa cycles)
+
+
+# Defines bluetooth function that will be run as separate process
+def bt_process():
+    while(True):
+        loopState = getLoopState()
+        bt_sendLoopState(loopState)
+broadcastProc = Process(target=bt_process)
 
 
 def bt_sendLoopState(loopState):
@@ -92,50 +101,54 @@ def takeImg(folderPath='Images/'):
     imageTitle = imageTitle.replace(':', '-')
     cam.capture(imageTitle)
 
+# Start bluetooth broadcast in parallel
+broadcastProc.start()
+# Main loop
 while(True):
-    # Check LoRa network status
-    if(lora_command('AT+NJS\n', ['0\r\n', '1\r\n']) == '0\r\n'):
-        lora_joinNetwork()
+    try:
+        # Check LoRa network status
+        if(lora_command('AT+NJS\n', ['0\r\n', '1\r\n']) == '0\r\n'):
+            lora_joinNetwork()
 
-    loop_state = getLoopState()
-    # Bluetooth broadcast
-    bt_sendLoopState(loop_state)
-    if loop_state:
-        takeImg()
+        if getLoopState():
+            takeImg()
 
-    # Check for new devices
-    scanDevices = sc.scan(SCAN_LEN)
-    for sDev in scanDevices:
-        for dev in devices:
-            if dev.addr == sDev.addr:
-                break
-        else:
-            devices.append(sDev)
-    # Print device count
-    print 'Devices found since ',
-    print time.ctime(btTime),
-    print ' : %d' % len(devices)
-    # Check if we need to refresh the list
-    if(time.time() - btTime > BT_PERIOD):
-        devices = []
-        btTime = time.time()
+        # Check for new devices
+        scanDevices = sc.scan(SCAN_LEN)
+        for sDev in scanDevices:
+            for dev in devices:
+                if dev.addr == sDev.addr:
+                    break
+            else:
+                devices.append(sDev)
+        # Print device count
+        print 'Devices found since ',
+        print time.ctime(btTime),
+        print ' : %d' % len(devices)
+        # Check if we need to refresh the list
+        if(time.time() - btTime > BT_PERIOD):
+            devices = []
+            btTime = time.time()
 
-    # Get sensor data
-    loudness = grovepi.analogRead(LOUDNESS_SENSOR)
-    [temp, hum] = grovepi.dht(TEMP_HUM_SENSOR, module_type=0)
-    print 'loudness: ' + str(loudness)
-    print 'temperature: ' + str(temp)
-    print 'humidity: ' + str(hum)
+        # Get sensor data
+        loudness = grovepi.analogRead(LOUDNESS_SENSOR)
+        [temp, hum] = grovepi.dht(TEMP_HUM_SENSOR, module_type=0)
+        print 'loudness: ' + str(loudness)
+        print 'temperature: ' + str(temp)
+        print 'humidity: ' + str(hum)
 
-    # Lora broadcast
-    if(time.time() - loraTime > LORA_PERIOD):
-        loraTime = time.time()
-        msg = 'AT+SEND=' + \
-            str(len(devices)) + ',' + \
-            str(loudness) + ',' + \
-            str(temp) + ',' + \
-            str(hum) + '\n'
-        lora_command(msg)
-
-    # Loop end code
-    time.sleep(2)
+        # Lora broadcast
+        if(time.time() - loraTime > LORA_PERIOD):
+            loraTime = time.time()
+            msg = 'AT+SEND=' + \
+                str(len(devices)) + ',' + \
+                str(loudness) + ',' + \
+                str(temp) + ',' + \
+                str(hum) + '\n'
+            lora_command(msg)
+    except:
+        # Cleanup code
+        broadcastProc.terminate()
+        subprocess.call('sudo hciconfig hci0 down', shell=True)
+        ser.close()
+        raise
