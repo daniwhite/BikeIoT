@@ -34,6 +34,11 @@ cam = picamera.PiCamera()
 
 bt_time = time.time()  # Start time (for bluetooth cycles)
 lora_time = time.time()  # Start time (for LoRa cycles)
+start_time = time.time()
+
+# Init log
+log = open("beacon.log", "w+")
+log.write("Start time: %s\n" % time.ctime())
 
 
 # Defines bluetooth function that will be run as separate process
@@ -62,11 +67,28 @@ def broadcast(loopstate):
     cmdstring += '42 69 63 79 63 6c 65 '  # Header to identify beacon message-
     # - and it's also is Bicycle in ASCII!
     if loopstate:
+            msg = "Time: %s\n" % time.ctime()
+            msg += 'Loop state: var- %s' % loopstate
+            msg += ' -- gp- %s\n\n' % grovepi.digitalRead(SWITCH)
+            log.write(msg)
             cmdstring = cmdstring + LOOP_ON
     else:
-        cmdstring = cmdstring + LOOP_OFF
+        cmdstring = cmdstring + LOOP_OFF + ' >/dev/null'
     subprocess.call(cmdstring, shell=True)
-    subprocess.call('sudo hciconfig hci0 leadv 3', shell=True)
+    subprocess.call('sudo hciconfig hci0 leadv 3 >/dev/null', shell=True)
+
+
+def cleanup():
+    broadcast_proc.terminate()
+    subprocess.call('sudo hciconfig hci0 down', shell=True)
+    ser.close()
+    log.close()
+    now = time.time()
+    print now - start_time
+    print (now - start_time) // 60,
+    print " min ",
+    print now % 60,
+    print "sec"
 
 
 def get_loopstate():
@@ -146,9 +168,10 @@ while(True):
                 str(temp) + ',' + \
                 str(hum) + '\n'
             lora_command(msg)
+    except IOError:
+        cleanup()
+        print 'IOError. Enable I2C in raspi-config and reboot.'
+        break
     except:
-        # Cleanup code
-        broadcast_proc.terminate()
-        subprocess.call('sudo hciconfig hci0 down', shell=True)
-        ser.close()
+        cleanup()
         raise
