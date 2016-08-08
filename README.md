@@ -23,6 +23,7 @@ Beacon
 ------
 - Uses **Beacon.sh** and **Beacon.py** files
 - Install [bluepy](https://github.com/IanHarvey/bluepy), [pyserial](https://github.com/pyserial/pyserial), and [grovepi](https://github.com/DexterInd/GrovePi) (use will **Scripts/install.sh**).
+- Enable I2C with `sudo raspi-config`, under *Advanced Options* > *I2C*
 - Create cronjob using `sudo crontab -e` (change `FILE_PATH` to path of Beacon.sh):
 ```
 shell=bin/bash
