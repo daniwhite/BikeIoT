@@ -19,6 +19,9 @@ SCAN_LEN = 2  # How long to scan bluetooth at one time
 LOUDNESS_SENSOR = 0  # Connect to A0
 TEMP_HUM_SENSOR = 6  # Connect to D6
 SWITCH = 5
+grovepi.pinMode(LOUDNESS_SENSOR, "INPUT")
+grovepi.pinMode(TEMP_HUM_SENSOR, "INPUT")
+grovepi.pinMode(SWITCH, "INPUT")
 
 # Setup bluetooth
 devices = []
@@ -50,6 +53,8 @@ broadcast_proc = Process(target=bt_process)
 
 
 def broadcast(loopstate):
+    if (loopstate != 0 and loopstate != 1):
+        loopstate = 0
     cmdstring = 'sudo hcitool -i hci0 cmd '  # Send cmd to hci0
     cmdstring += '0x08 '  # Set group to BLE
     cmdstring += '0x0008 '  # Set command to HCI_LE_Set_Advertising_Data
@@ -73,9 +78,9 @@ def broadcast(loopstate):
             log.write(msg)
             cmdstring = cmdstring + LOOP_ON
     else:
-        cmdstring = cmdstring + LOOP_OFF + ' >/dev/null'
+        cmdstring = cmdstring + LOOP_OFF + ' >/dev/null 2>&1'
     subprocess.call(cmdstring, shell=True)
-    subprocess.call('sudo hciconfig hci0 leadv 3 >/dev/null', shell=True)
+    subprocess.call('sudo hciconfig hci0 leadv 3 >/dev/null 2>&1', shell=True)
 
 
 def cleanup():
