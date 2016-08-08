@@ -35,9 +35,9 @@ ser = serial.Serial(device, baudrate)
 # Initialize camera
 cam = picamera.PiCamera()
 
-bt_time = time.time()  # Start time (for bluetooth cycles)
-lora_time = time.time()  # Start time (for LoRa cycles)
-start_time = time.time()
+bt_time = time.time()  # Init time for bluetooth device count cycles
+lora_time = time.time()  # Init time for LoRa cycles
+start_time = time.time()  # Init time for program run time
 
 # Init log
 log = open("beacon.log", "w+")
@@ -49,6 +49,7 @@ def bt_process():
     while(True):
         loopstate = get_loopstate()
         broadcast(loopstate)
+        time.sleep(0.1)
 broadcast_proc = Process(target=bt_process)
 
 
@@ -174,9 +175,8 @@ while(True):
                 str(hum) + '\n'
             lora_command(msg)
     except IOError:
-        cleanup()
-        print 'IOError. Enable I2C in raspi-config and reboot.'
-        break
+        print "IOError detected and excepted"
+        pass
     except:
         cleanup()
         raise

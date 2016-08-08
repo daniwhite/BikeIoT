@@ -19,7 +19,7 @@ GPIO.setup(loop_light, GPIO.OUT, initial=GPIO.LOW)
 # Initalize bluetooth
 SCAN_LEN = 0.5
 COMM_BUF_LEN = 6
-LOOP_BUF_LEN = 1
+LOOP_BUF_LEN = 2
 key = '42696379636c65'  # Special header on bluetooth message sent by beacon
 sc = btle.Scanner(0)
 scanbuf = []
@@ -30,15 +30,18 @@ try:
     while(True):
         # Update scan buffer
         scan = sc.scan(SCAN_LEN)
-        scanbuf.append(scan)
+        scanbuf.insert(0, scan)
         if(len(scanbuf) > COMM_BUF_LEN):
-            scanbuf.pop(0)
+            scanbuf.pop(len(scanbuf) - 1)
 
         # Set up loop
         data = ''
         beacon_detected = False
         new_scan = True
-        for s in scanbuf:
+        for i, s in enumerate(scanbuf):
+            print '=======Scan number %d=======' % i
+            if (new_scan):
+                print '***NEW SCAN***'
             for d in s:
                 msg = d.getValueText(7)
                 print msg
@@ -46,20 +49,25 @@ try:
                     if msg[:len(msg) - 2] == key:
                         beacon_detected = True
                         data = msg[len(msg) - 2:]
+                        print data
                         if new_scan and not (data == ''):
                             databuf.insert(0, data)
+                            print databuf
+            if new_scan:
+                print '******'
             new_scan = False
 
         # Keep buffer at correct length
         if len(databuf) > LOOP_BUF_LEN:
             databuf.pop(len(databuf) - 1)
+        print "Data buf: ",
+        print databuf
         loop_state = LOOP_ON in databuf
-
         # Set lights
         print 'Comm light: %s' % beacon_detected
         GPIO.output(comm_light, beacon_detected)
-        print 'Loop light: %s' % loop_state
-        GPIO.output(loop_light, loop_state)
+        print 'Loop light: %s' % beacon_detected and loop_state
+        GPIO.output(loop_light, beacon_detected and loop_state)
         print
 except btle.BTLEException:
     print 'Must run as root user'
