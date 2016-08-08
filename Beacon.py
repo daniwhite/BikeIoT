@@ -42,6 +42,8 @@ bt_time = time.time()  # Init time for bluetooth device count cycles
 lora_time = time.time()  # Init time for LoRa cycles
 start_time = time.time()  # Init time for program run time
 
+notExcepted = True
+
 
 # Defines bluetooth function that will be run as separate process
 def bt_process():
@@ -53,7 +55,6 @@ def bt_process():
     except IOError:
         print "IOError detected and excepted"
         pass
-broadcast_proc = Process(target=bt_process)
 
 
 def broadcast(loopstate):
@@ -155,16 +156,23 @@ def take_img(folder_path='Images/'):
     title = title.replace(':', '-')
     cam.capture(title)
 
-# Start bluetooth broadcast in parallel
-broadcast_proc.start()
+# Prepare to broadcast
+broadcast_proc = Process(target=bt_process)
 # Main loop
 while(True):
     try:
+        # Start bluetooth broadcast in parallel
+        if not broadcast_proc.is_alive():
+            print 'Starting new bluetooth process'
+            del(broadcast_proc)
+            broadcast_proc = Process(target=bt_process)
+            broadcast_proc.start()
+
         # Get sensor data
         data = get_queue_data()
         # If there's no data, wait a bit
         if (len(data) == 0):
-            'Waiting'
+            print 'Waiting'
             time.sleep(0.1)
             continue
 
