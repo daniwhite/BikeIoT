@@ -19,7 +19,7 @@ GPIO.setup(loop_light, GPIO.OUT, initial=GPIO.LOW)
 # Initalize bluetooth
 SCAN_LEN = 0.5
 COMM_BUF_LEN = 6
-LOOP_BUF_LEN = 2
+LOOP_BUF_LEN = 1
 key = '42696379636c65'  # Special header on bluetooth message sent by beacon
 sc = btle.Scanner(0)
 scanbuf = []
