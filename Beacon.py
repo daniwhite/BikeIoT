@@ -6,7 +6,8 @@ from bluepy import btle
 import time
 import picamera
 import grovepi
-from multiprocessing import Process
+from multiprocessing import Process, Queue
+from Queue import Empty
 
 LOOP_ON = '01'
 LOOP_OFF = '00'
@@ -26,6 +27,8 @@ grovepi.pinMode(SWITCH, "INPUT")
 # Setup bluetooth
 devices = []
 sc = btle.Scanner(0)
+switchQ = Queue()
+qloopstate = 0
 
 # Initialize serial (to control mDot)
 device = '/dev/ttyUSB0'
@@ -39,23 +42,16 @@ bt_time = time.time()  # Init time for bluetooth device count cycles
 lora_time = time.time()  # Init time for LoRa cycles
 start_time = time.time()  # Init time for program run time
 
-# Init log
-log = open("beacon.log", "w+")
-log.write("Start time: %s\n" % time.ctime())
-
 
 # Defines bluetooth function that will be run as separate process
 def bt_process():
     while(True):
-        loopstate = get_loopstate()
+        loopstate = get_queue_loopstate()
         broadcast(loopstate)
-        time.sleep(0.1)
 broadcast_proc = Process(target=bt_process)
 
 
 def broadcast(loopstate):
-    if (loopstate != 0 and loopstate != 1):
-        loopstate = 0
     cmdstring = 'sudo hcitool -i hci0 cmd '  # Send cmd to hci0
     cmdstring += '0x08 '  # Set group to BLE
     cmdstring += '0x0008 '  # Set command to HCI_LE_Set_Advertising_Data
@@ -73,10 +69,6 @@ def broadcast(loopstate):
     cmdstring += '42 69 63 79 63 6c 65 '  # Header to identify beacon message-
     # - and it's also is Bicycle in ASCII!
     if loopstate:
-            msg = "Time: %s\n" % time.ctime()
-            msg += 'Loop state: var- %s' % loopstate
-            msg += ' -- gp- %s\n\n' % grovepi.digitalRead(SWITCH)
-            log.write(msg)
             cmdstring = cmdstring + LOOP_ON
     else:
         cmdstring = cmdstring + LOOP_OFF + ' >/dev/null 2>&1'
@@ -88,7 +80,6 @@ def cleanup():
     broadcast_proc.terminate()
     subprocess.call('sudo hciconfig hci0 down', shell=True)
     ser.close()
-    log.close()
     now = time.time()
     print now - start_time
     print (now - start_time) // 60,
@@ -98,7 +89,28 @@ def cleanup():
 
 
 def get_loopstate():
-    return grovepi.digitalRead(SWITCH)  # Stand-in
+    # Reads loopstate directly from grovepi
+    # Should only be called in main thread
+    return grovepi.digitalRead(SWITCH)
+
+
+def set_queue_loopstate(state):
+    # Sets loopstate in queue
+    while(not switchQ.empty):
+        switchQ.get()
+    switchQ.put(state)
+
+
+def get_queue_loopstate():
+    # Gets loopstate from queue
+    # Should be how alternate threads access the loopstate
+    global qloopstate
+    try:
+        qloopstate = switchQ.get_nowait()
+    except Empty:
+        # Just use old loopstate if queue is empty
+        pass
+    return qloopstate
 
 
 # Sends an AT command, then returns its response
@@ -134,6 +146,7 @@ broadcast_proc.start()
 # Main loop
 while(True):
     try:
+        set_queue_loopstate(get_loopstate())
         # Check LoRa network status
         if(lora_command('AT+NJS\n', ['0\r\n', '1\r\n']) == '0\r\n'):
             lora_join_network()
