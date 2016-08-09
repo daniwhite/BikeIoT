@@ -148,7 +148,7 @@ def lora_join_network():
             'Successfully joined network\r\n'])
 
 
-def take_img(folder_path='Images/'):
+def take_img(folder_path='/home/pi/Images/'):
     title = folder_path + time.ctime() + '.jpg'
     title = title.replace(' ', '_')
     title = title.replace(':', '-')

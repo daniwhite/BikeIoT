@@ -22,9 +22,10 @@ Setup
 Beacon
 ------
 - Uses **Beacon.sh** and **Beacon.py** files
+  - **Beacon.py** must either be in /home/pi, or else the filepath in the last line of **Beacon.sh** must be changed
 - Install [bluepy](https://github.com/IanHarvey/bluepy), [pyserial](https://github.com/pyserial/pyserial), and [grovepi](https://github.com/DexterInd/GrovePi) (use will **Scripts/install.sh**).
 - Enable I2C with `sudo raspi-config`, under *Advanced Options* > *I2C*
-- (Optional) Change raspberry pi with`sudo raspi-config`, under *Advanced Options* > *Hostname*
+- (Optional) Change hostname with`sudo raspi-config`, under *Advanced Options* > *Hostname*
 - Create cronjob using `sudo crontab -e` (change `FILE_PATH` to path of Beacon.sh):
 ```
 shell=bin/bash
@@ -35,13 +36,14 @@ shell=bin/bash
 
 Receiver
 --------
-- Uses **Receiver.py** file
+- Uses **Receiver.sh** and **Receiver.py** file
+  - **Receiver.py** must either be in /home/pi, or else the filepath in the last line of **Receiver.sh** must be changed
 - Install [bluepy](https://github.com/IanHarvey/bluepy)
-- (Optional) Change raspberry pi with`sudo raspi-config`, under *Advanced Options* > *Hostname*
-- Create cronjob using `sudo crontab -e` (change `FILE_PATH` to path of Receiver.py):
+- (Optional) Change hostname with`sudo raspi-config`, under *Advanced Options* > *Hostname*
+- Create cronjob using `sudo crontab -e` (change `FILE_PATH` to path of Receiver.sh):
 ```
 shell=bin/bash
-@reboot python FILE_PATH >/home/pi/cronlog 2>&1
+@reboot bash FILE_PATH >/home/pi/cronlog 2>&1
 ```
 mDot and Gateway
 ----------------

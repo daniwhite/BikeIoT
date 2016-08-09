@@ -14,7 +14,4 @@ do
     break
   fi
 done
-
-sudo hciconfig hci0 up
-sudo hciconfig hcio noscanc
-sudo python /home/pi/Beacon.py
+python /home/pi/Receiver.py
