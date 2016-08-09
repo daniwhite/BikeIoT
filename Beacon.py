@@ -42,8 +42,6 @@ bt_time = time.time()  # Init time for bluetooth device count cycles
 lora_time = time.time()  # Init time for LoRa cycles
 start_time = time.time()  # Init time for program run time
 
-notExcepted = True
-
 
 # Defines bluetooth function that will be run as separate process
 def bt_process():
@@ -86,8 +84,8 @@ def cleanup():
     broadcast_proc.terminate()
     subprocess.call('sudo hciconfig hci0 down', shell=True)
     ser.close()
+    # Print how long the program ran for
     now = time.time()
-    print now - start_time
     print (now - start_time) // 60,
     print " min ",
     print now % 60,
@@ -176,6 +174,7 @@ while(True):
             time.sleep(0.1)
             continue
 
+        # Print sensor data
         print 'loudness: ' + str(data[1])
         print 'temperature: ' + str(data[2])
         print 'humidity: ' + str(data[3])
@@ -184,6 +183,7 @@ while(True):
         if(lora_command('AT+NJS\n', ['0\r\n', '1\r\n']) == '0\r\n'):
             lora_join_network()
 
+        # Take picture if loop is triggered
         if data[0]:
             take_img()
 

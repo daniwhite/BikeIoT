@@ -2,10 +2,10 @@
 
 Hardware used
 =============
-**Receiver**: 
+**Receiver**:
 - Raspberry Pi 3
 
-**Beacon**: 
+**Beacon**:
 - Raspberry Pi
 - MultiTech mDot X1P-SMA-1
 - SparkFun XBee Explorer Dongle
@@ -24,6 +24,7 @@ Beacon
 - Uses **Beacon.sh** and **Beacon.py** files
 - Install [bluepy](https://github.com/IanHarvey/bluepy), [pyserial](https://github.com/pyserial/pyserial), and [grovepi](https://github.com/DexterInd/GrovePi) (use will **Scripts/install.sh**).
 - Enable I2C with `sudo raspi-config`, under *Advanced Options* > *I2C*
+- (Optional) Change raspberry pi with`sudo raspi-config`, under *Advanced Options* > *Hostname*
 - Create cronjob using `sudo crontab -e` (change `FILE_PATH` to path of Beacon.sh):
 ```
 shell=bin/bash
@@ -36,6 +37,7 @@ Receiver
 --------
 - Uses **Receiver.py** file
 - Install [bluepy](https://github.com/IanHarvey/bluepy)
+- (Optional) Change raspberry pi with`sudo raspi-config`, under *Advanced Options* > *Hostname*
 - Create cronjob using `sudo crontab -e` (change `FILE_PATH` to path of Receiver.py):
 ```
 shell=bin/bash

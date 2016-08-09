@@ -60,8 +60,6 @@ try:
         # Keep buffer at correct length
         if len(databuf) > LOOP_BUF_LEN:
             databuf.pop(len(databuf) - 1)
-        print "Data buf: ",
-        print databuf
         loop_state = LOOP_ON in databuf
         # Set lights
         print 'Comm light: %s' % beacon_detected
