@@ -1,4 +1,4 @@
-#define DATA_POINTS 3
+#define DATA_POINTS 4
 #define DELIM ','
 
 void getData(String* data);

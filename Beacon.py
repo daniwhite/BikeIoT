@@ -30,10 +30,13 @@ grove_data = []
 devices = []
 sc = btle.Scanner(0)
 
-# Initialize serial (to control mDot)
-device = '/dev/ttyUSB0'
-baudrate = 115200
-ser = serial.Serial(device, baudrate)
+# Initialize serial
+lora_device = '/dev/ttyUSB0'
+lora_baudrate = 115200
+lora_ser = serial.Serial(lora_device, lora_baudrate)
+cell_device = '/dev/ttyACM0'
+cell_baudrate = 115200
+cell_ser = serial.Serial(cell_device, cell_baudrate)
 
 # Initialize camera
 cam = picamera.PiCamera()
@@ -41,6 +44,9 @@ cam = picamera.PiCamera()
 bt_time = time.time()  # Init time for bluetooth device count cycles
 lora_time = time.time()  # Init time for LoRa cycles
 start_time = time.time()  # Init time for program run time
+
+lora_network_status = False
+lora_network_checked = False
 
 
 # Defines bluetooth function that will be run as separate process
@@ -81,9 +87,10 @@ def broadcast(loopstate):
 
 
 def cleanup():
-    broadcast_proc.terminate()
+    # broadcast_proc.terminate()
     subprocess.call('sudo hciconfig hci0 down', shell=True)
-    ser.close()
+    lora_ser.close()
+    cell_ser.close()
     # Print how long the program ran for
     now = time.time()
     print (now - start_time) // 60,
@@ -126,26 +133,33 @@ def get_queue_data():
     return grove_data
 
 
-# Sends an AT command, then returns its response
-def lora_command(str, responses=['OK\r\n']):
+# Sends command over serial, then returns its response
+def ser_command(str, ser, responses=['OK\r\n']):
     ser.write(str)
-    ser.readline()
+    if ser == lora_ser:
+        ser.readline()
     msg = ''
     while (msg not in responses):
         try:
             msg = ser.readline()
+            print msg
         except OSError, serial.SerialException:
             print 'Unable to read. Is something else using the serial port?'
     return msg
 
 
 # Send AT command to join LoRa network
-def lora_join_network():
+# Timout of -1 means wait for connection forever, 0 means don't wait at all
+def lora_join_network(timeout=-1):
     str = ''
+    start_time = time.time()
     while(not (str == 'Successfully joined network\r\n')):
-        str = lora_command('AT+JOIN\n', [
+        str = ser_command('AT+JOIN\n', lora_ser, [
             'Join Error - Failed to join network\r\n',
             'Successfully joined network\r\n'])
+        if (timeout >= 0 and time.time() - start_time > timeout):
+            return False
+    return True
 
 
 def take_img(folder_path='/home/pi/Images/'):
@@ -180,8 +194,14 @@ while(True):
         print 'humidity: ' + str(data[3])
 
         # Check LoRa network status
-        if(lora_command('AT+NJS\n', ['0\r\n', '1\r\n']) == '0\r\n'):
-            lora_join_network()
+        if(ser_command('AT+NJS\n', lora_ser, ['0\r\n', '1\r\n']) == '0\r\n'):
+            if not lora_network_checked:
+                lora_network_status = lora_join_network(5)
+                lora_network_checked = True
+                if lora_network_status:
+                    print 'Network joined successfully!'
+                else:
+                    print 'Network join failed.'
 
         # Take picture if loop is triggered
         if data[0]:
@@ -204,15 +224,26 @@ while(True):
             devices = []
             bt_time = time.time()
 
+        msg = str(len(devices)) + ',' + \
+            str(data[1]) + ',' + \
+            str(data[2]) + ',' + \
+            str(data[3]) + '\n'
         # Lora broadcast
-        if(time.time() - lora_time > LORA_PERIOD):
+        if (time.time() - lora_time > LORA_PERIOD) and lora_network_status:
             lora_time = time.time()
-            msg = 'AT+SEND=' + \
-                str(len(devices)) + ',' + \
-                str(data[1]) + ',' + \
-                str(data[2]) + ',' + \
-                str(data[3]) + '\n'
-            lora_command(msg)
+            loraMsg = 'AT+SEND=' + msg
+            ser_command(msg, lora_ser)
+
+        # Cell broadcast
+        ser_command(msg, cell_ser)
+        print 'Cycled'
     except:
-        cleanup()
+        # cleanup()
         raise
+
+ser = serial.Serial('/dev/ttyACM0', 115200)
+
+
+while True:
+    ser.write('Hello,hi,goodbye')
+    time.sleep(1)
