@@ -18,7 +18,7 @@ void loop() {
   if (Serial.available() > 0) {
     data = getData();
     Serial.println(data);
-    Particle.publish("B",data);
+    Particle.publish("Brdcst",data);
   }
 }
 

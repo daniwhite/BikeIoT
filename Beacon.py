@@ -38,6 +38,11 @@ cell_device = '/dev/ttyACM0'
 cell_baudrate = 115200
 cell_ser = serial.Serial(cell_device, cell_baudrate)
 
+# Data to send to cell
+broadcast_data = []
+old_broadcast_data = []
+prefixes = ["devs", "ld", "temp", "hum"]
+
 # Initialize camera
 cam = picamera.PiCamera()
 
@@ -224,26 +229,34 @@ while(True):
             devices = []
             bt_time = time.time()
 
-        msg = str(len(devices)) + ',' + \
-            str(data[1]) + ',' + \
-            str(data[2]) + ',' + \
-            str(data[3]) + '\n'
+        broadcast_data = data[1:4]
+        broadcast_data.append(len(devices))
+
         # Lora broadcast
+        lora_msg = ''
+        for d in broadcast_data:
+            lora_msg += str(d) + ','
+        # Get rid of last comma, add newline
+        lora_msg = lora_msg[:len(lora_msg) - 1] + '\n'
         if (time.time() - lora_time > LORA_PERIOD) and lora_network_status:
             lora_time = time.time()
-            loraMsg = 'AT+SEND=' + msg
-            ser_command(msg, lora_ser)
+            loraMsg = 'AT+SEND=' + lora_msg
+            ser_command(lora_msg, lora_ser)
 
         # Cell broadcast
-        ser_command(msg, cell_ser)
+        if len(old_broadcast_data) != 0:
+            cell_msg = ''
+            for i, d in enumerate(broadcast_data):
+                if not (d == old_broadcast_data[i]):
+                    cell_msg += prefixes[i] + ':' + str(d) + ','
+            cell_msg = cell_msg[:len(cell_msg) - 1] + '\n'
+            print broadcast_data
+            print old_broadcast_data
+            print cell_msg
+            ser_command(cell_msg, cell_ser)
+        old_broadcast_data = broadcast_data
+
         print 'Cycled'
     except:
-        # cleanup()
+        cleanup()
         raise
-
-ser = serial.Serial('/dev/ttyACM0', 115200)
-
-
-while True:
-    ser.write('Hello,hi,goodbye')
-    time.sleep(1)
