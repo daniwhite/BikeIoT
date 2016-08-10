@@ -13,6 +13,7 @@ Hardware used
 - Grove Loudness Sensor
 - Grove Temperature and Humidity Sensor
 - Rasberry Pi Camera Board, Rev 1.3
+- Particle Electron 3G kit
 
 **Other**:
 - MultiTech MultiConnect AEP Conduit, with LoRa mCard
@@ -33,6 +34,12 @@ shell=bin/bash
 ```
 - Enable camera through `raspi-config`
 - Disable getty on serial: `sudo systemctl disable serial-getty@ttyAMA0.service`
+- Program Particle:
+  - Put it in [DFU mode](https://docs.particle.io/guide/getting-started/modes/electron/#dfu-mode-device-firmware-upgrade-)
+  - Flash firmware [over USB](https://github.com/spark/particle-cli#compiling-remotely-and-flashing-locally) using the CLI (usually `particle flash --usb firmware.bin`)
+  - *Notes for building software:*
+    - Use [these guidelines](https://docs.particle.io/guide/getting-started/data/electron/#ways-to-reduce-data-use) serve as a good way to save data
+    - If using the atom particle package, make sure that only the particle project folder (with nothing that won't be going on the particle) is open when you compile
 
 Receiver
 --------

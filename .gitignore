@@ -1,2 +1,5 @@
 #Organization/temporary files
 misc/
+
+#Firmware files for particle
+*.bin
