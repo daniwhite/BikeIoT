@@ -1,27 +1,28 @@
 #define DATA_POINTS 4
 #define DELIM ','
 
-void getData(String* data);
-void shareData(String* data);
+void getDataArr(String* data);
+String getData();
+bool broadcast;
 
 void setup() {
-  Cellular.off();
   Serial.begin(115200);
+  broadcast = true;
 }
 
 // Note: Code that blocks for too long (like more than 5 seconds), can make weird things happen (like dropping the network connection).  The built-in delay function shown below safely interleaves required background activity, so arbitrarily long delays can safely be done if you need them.
 
+
 void loop() {
+  String data;
   if (Serial.available() > 0) {
-    String data[DATA_POINTS];
-    getData(data);
-    for (int i = 0; i < DATA_POINTS; i++) {
-      Serial.println(data[i]);
-    }
+    data = getData();
+    Serial.println(data);
+    Particle.publish("B",data);
   }
 }
 
-void getData(String* data) {
+void getDataArr(String* data) {
   for (int i = 0; i < DATA_POINTS;i++) {
     bool delimFound = false;
     String datapoint = "";
@@ -40,8 +41,12 @@ void getData(String* data) {
   return;
 }
 
-void shareData(String* data) {
-  Particle.variable("loudness", data[0]);
-  Particle.variable("temperature", data[1]);
-  Particle.variable("humidity", data[2]);
+String getData() {
+  String data = "";
+  while(Serial.available() > 0) {
+    char nextByte = Serial.read();
+    data += nextByte;
+    }
+  Serial.write("OK\r\n");
+  return data;
 }
