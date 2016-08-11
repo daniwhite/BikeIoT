@@ -7,10 +7,10 @@ do
   DEVICES=${DEVICES:10}
   if [ -z "$DEVICES" ]
   then
-    echo "Waiting..."
+    printf "Waiting for bluetooth to start\r"
     continue
   else
-    echo "Done waiting!"
+    echo "Bluetooth device available!\n"
     break
   fi
 done

@@ -1,4 +1,4 @@
-# Program for beacon RPi
+"""Program for beacon RPi."""
 
 import subprocess
 import serial
@@ -13,9 +13,18 @@ LOOP_ON = '01'
 LOOP_OFF = '00'
 
 BT_PERIOD = 60  # How often to clear the bluetooth device list and start over
-LORA_PERIOD = 5  # How many seconds between each Lora braodcast
+LORA_BROADCAST_PERIOD = 5  # Seconds between each Lora braodcast
+LORA_NETWORK_PERIOD = 60*60  # Seconds between trying to reconnect to LoRa
 CELL_PERIOD = 10  # At least ~540 should be the final to use 1 mb per month
 SCAN_LEN = 2  # How long to scan bluetooth at one time
+
+# Set up start times
+bt_time = time.time()  # Init time for bluetooth device count cycles
+lora_broadcast_time = time.time()  # Init time for LoRa cycles
+lora_network_time = time.time()  # Init time for Lora Connection
+lora_network_time -= LORA_NETWORK_PERIOD  # Will attempt to connect right away
+cell_time = time.time()  # Init time for cell cycles
+start_time = time.time()  # Init time for program run time
 
 # Set up grovepi
 LOUDNESS_SENSOR = 0  # Connect to A0
@@ -47,28 +56,23 @@ prefixes = ["devs", "ld", "temp", "hum"]
 # Initialize camera
 cam = picamera.PiCamera()
 
-bt_time = time.time()  # Init time for bluetooth device count cycles
-lora_time = time.time()  # Init time for LoRa cycles
-cell_time = time.time()  # Init time for cell cycles
-start_time = time.time()  # Init time for program run time
-
 lora_network_status = False
-lora_network_checked = False
 
 
-# Defines bluetooth function that will be run as separate process
 def bt_process():
+    """Define bluetooth function that will be run as separate process."""
     try:
         while(True):
             data = get_data()
             set_queue_data(data)
             broadcast(data[0])
     except IOError:
-        print "IOError detected and excepted"
+        print 'IOError detected and excepted'
         pass
 
 
 def broadcast(loopstate):
+    """Broadcast loopstate over bluetooth."""
     cmdstring = 'sudo hcitool -i hci0 cmd '  # Send cmd to hci0
     cmdstring += '0x08 '  # Set group to BLE
     cmdstring += '0x0008 '  # Set command to HCI_LE_Set_Advertising_Data
@@ -94,6 +98,7 @@ def broadcast(loopstate):
 
 
 def cleanup():
+    """Clean up at program end."""
     broadcast_proc.terminate()
     subprocess.call('sudo hciconfig hci0 noleadv', shell=True)
     ser_command('Cell off', cell_ser)
@@ -107,31 +112,33 @@ def cleanup():
     print "sec"
 
 
-def get_loopstate():
-    # Reads loopstate directly from grovepi
-    # Should only be called in one thread
-    return grovepi.digitalRead(SWITCH)
-
-
 def get_data():
-    # Reads assemble data directly from grovepi
-    # Should only be called in one thread
+    """
+    Read sensor data right from grovepi.
+
+    Don't call in more than one thread.
+    """
     loopstate = get_loopstate()
     loudness = grovepi.analogRead(LOUDNESS_SENSOR)
     [temp, hum] = grovepi.dht(TEMP_HUM_SENSOR, module_type=0)
     return [loopstate, loudness, temp, hum]
 
 
-def set_queue_data(data):
-    # Sets loopstate in queue
-    while(not grove_queue.empty):
-        grove_queue.get()
-    grove_queue.put(data)
+def get_loopstate():
+    """
+    Get state of loop, with whatever the system ends up being.
+
+    For now, since it's grovepi, don't call in multiple threads
+    """
+    return grovepi.digitalRead(SWITCH)
 
 
 def get_queue_data():
-    # Gets loopstate from queue
-    # Should be how alternate threads access the loopstate
+    """
+    Get loopstate from queue.
+
+    Safe for all theads).
+    """
     global grove_data
     try:
         grove_data = grove_queue.get_nowait()
@@ -141,24 +148,12 @@ def get_queue_data():
     return grove_data
 
 
-# Sends command over serial, then returns its response
-def ser_command(str, ser, responses=['OK\r\n']):
-    ser.write(str)
-    if ser == lora_ser:
-        ser.readline()
-    msg = ''
-    while (msg not in responses):
-        try:
-            msg = ser.readline()
-            print msg
-        except OSError, serial.SerialException:
-            print 'Unable to read. Is something else using the serial port?'
-    return msg
-
-
-# Send AT command to join LoRa network
-# Timout of -1 means wait for connection forever, 0 means don't wait at all
 def lora_join_network(timeout=-1):
+    """
+    Send AT command to join LoRa network.
+
+    Timout of -1 means wait for connection forever, 0 means don't wait at all.
+    """
     str = ''
     start_time = time.time()
     while(not (str == 'Successfully joined network\r\n')):
@@ -170,15 +165,40 @@ def lora_join_network(timeout=-1):
     return True
 
 
+def ser_command(str, ser, responses=['OK\r\n']):
+    """Send command over serial, then returns its response."""
+    ser.write(str)
+    if ser == lora_ser:
+        ser.readline()
+    msg = ''
+    while (msg not in responses):
+        try:
+            msg = ser.readline()
+        except OSError, serial.SerialException:
+            print 'Unable to read. Is something else using the serial port?'
+    return msg
+
+
+def set_queue_data(data):
+    """Set loopstate in queue."""
+    while(not grove_queue.empty):
+        grove_queue.get()
+    grove_queue.put(data)
+
+
 def take_img(folder_path='/home/pi/Images/'):
+    """Take picture."""
     title = folder_path + time.ctime() + '.jpg'
     title = title.replace(' ', '_')
     title = title.replace(':', '-')
     cam.capture(title)
 
 
-# Prepare to broadcast
+# Setup code for before running loop
 broadcast_proc = Process(target=bt_process)
+# Turn on cellular
+ser_command('Cell on', cell_ser)
+
 # Main loop
 while(True):
     try:
@@ -189,31 +209,30 @@ while(True):
             broadcast_proc = Process(target=bt_process)
             broadcast_proc.start()
 
-        # Turn on cellular
-        ser_command('Cell on', cell_ser)
-
         # Get sensor data
         data = get_queue_data()
         # If there's no data, wait a bit
         if (len(data) == 0):
-            print 'Waiting'
-            time.sleep(0.1)
+            print 'Waiting for queue data' + '\r',
             continue
 
         # Print sensor data
-        print 'loudness: ' + str(data[1])
-        print 'temperature: ' + str(data[2])
-        print 'humidity: ' + str(data[3])
+        print '\n** Sensor data **'
+        print 'Loudness: ' + str(data[1])
+        print 'Temperature: ' + str(data[2])
+        print 'Humidity: ' + str(data[3])
+        print '****\n'
 
         # Check LoRa network status
-        if(ser_command('AT+NJS\n', lora_ser, ['0\r\n', '1\r\n']) == '0\r\n'):
-            if not lora_network_checked:
-                lora_network_status = lora_join_network(5)
-                lora_network_checked = True
-                if lora_network_status:
-                    print 'Network joined successfully!'
-                else:
-                    print 'Network join failed.'
+        if (time.time() - lora_network_time > LORA_NETWORK_PERIOD):
+            if(ser_command(
+                        'AT+NJS\n', lora_ser, ['0\r\n', '1\r\n']) == '0\r\n'):
+                    lora_join_network(5)
+                    if lora_network_status:
+                        print 'Network joined successfully!'
+                    else:
+                        print 'Network join failed.'
+            lora_network_time = time.time()
 
         # Take picture if loop is triggered
         if data[0]:
@@ -230,7 +249,7 @@ while(True):
         # Print device count
         print 'Devices found since ',
         print time.ctime(bt_time),
-        print ' : %d' % len(devices)
+        print ' : %d\n' % len(devices)
         # Check if we need to refresh the list
         if(time.time() - bt_time > BT_PERIOD):
             devices = []
@@ -245,8 +264,9 @@ while(True):
             lora_msg += str(d) + ','
         # Get rid of last comma, add newline
         lora_msg = lora_msg[:len(lora_msg) - 1] + '\n'
-        if (time.time() - lora_time > LORA_PERIOD) and lora_network_status:
-            lora_time = time.time()
+        if (time.time() - lora_broadcast_time > LORA_BROADCAST_PERIOD) and (
+                lora_network_status):
+            lora_broadcast_time = time.time()
             loraMsg = 'AT+SEND=' + lora_msg
             ser_command(lora_msg, lora_ser)
 

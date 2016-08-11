@@ -1,4 +1,4 @@
-# Program for receiver RPi
+"""Program for receiver RPi."""
 
 from bluepy import btle
 import RPi.GPIO as GPIO
