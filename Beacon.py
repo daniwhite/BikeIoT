@@ -94,8 +94,9 @@ def broadcast(loopstate):
 
 
 def cleanup():
-    # broadcast_proc.terminate()
+    broadcast_proc.terminate()
     subprocess.call('sudo hciconfig hci0 down', shell=True)
+    ser_command('Cell off', cell_ser)
     lora_ser.close()
     cell_ser.close()
     # Print how long the program ran for
@@ -175,6 +176,7 @@ def take_img(folder_path='/home/pi/Images/'):
     title = title.replace(':', '-')
     cam.capture(title)
 
+
 # Prepare to broadcast
 broadcast_proc = Process(target=bt_process)
 # Main loop
@@ -186,6 +188,9 @@ while(True):
             del(broadcast_proc)
             broadcast_proc = Process(target=bt_process)
             broadcast_proc.start()
+
+        # Turn on cellular
+        ser_command('Cell on', cell_ser)
 
         # Get sensor data
         data = get_queue_data()

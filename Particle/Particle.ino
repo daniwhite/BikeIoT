@@ -2,6 +2,7 @@
 #define DELIM ','
 
 String getData();
+void sendResponse();
 bool broadcast;
 
 void setup() {
@@ -16,8 +17,16 @@ void loop() {
   String data;
   if (Serial.available() > 0) {
     data = getData();
-    Serial.println(data);
-    Particle.publish("Brdcst",data);
+    if (data == "Cell on") {
+      Cellular.on();
+      Serial.println("Cell on");
+    } else if (data == "Cell off") {
+      Cellular.off();
+      Serial.println("Cell off");
+    } else {
+      Particle.publish("Brdcst", data);
+    }
+    sendResponse();
   }
 }
 
@@ -27,6 +36,10 @@ String getData() {
     char nextByte = Serial.read();
     data += nextByte;
     }
-  Serial.write("OK\r\n");
   return data;
+}
+
+void sendResponse(){
+  Serial.write("OK\r\n");
+  return;
 }
