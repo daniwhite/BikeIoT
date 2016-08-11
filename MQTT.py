@@ -1,3 +1,5 @@
+"""Publish HTTP data from particle over MQTT."""
+
 import json
 from paho.mqtt.publish import single
 from sseclient import SSEClient

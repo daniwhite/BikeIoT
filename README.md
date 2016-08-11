@@ -66,3 +66,6 @@ mDot and Gateway
 - Once all settings are correct, use `AT&W` to save them.
 
 Additionally, the gateway will need the Node-RED flow imported. In Node-RED (*Apps* > *Node-RED*) go to *Import* > *Clipboard* and paste in **flow.JSON**.
+Other setup
+-----------
+- To run MQTT.py, install [paho-mqtt](https://pypi.python.org/pypi/paho-mqtt#id2) and [sseclient](https://github.com/mpetazzoni/sseclient)
