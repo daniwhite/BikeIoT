@@ -257,7 +257,7 @@ while(True):
             for i, d in enumerate(broadcast_data):
                 if not (d == old_broadcast_data[i]):
                     cell_msg += prefixes[i] + ':' + str(d) + ','
-            cell_msg = cell_msg[:len(cell_msg) - 1] + '\n'
+            cell_msg = cell_msg[:len(cell_msg) - 1]
             print broadcast_data
             print old_broadcast_data
             print cell_msg
