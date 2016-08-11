@@ -1,11 +1,11 @@
 import json
-import paho.mqtt.client as mqtt
-import sseclient as sse
+from paho.mqtt.publish import single
+from sseclient import SSEClient
 
 # Came from Particle console
 addr = "https://api.particle.io/v1/devices/events?access_token=222dbfc46f58a5a4cbfc8ec454360c44aa3947ed"
 
-messages = sse.SSEClient(addr)
+messages = SSEClient(addr)
 # Iterates through ever object in the stream and waits for new objects
 for msg in messages:
     if len(msg.data) > 0:
@@ -18,5 +18,8 @@ for msg in messages:
         raw_data = '{"' + raw_data + '}'
         print raw_data
         data = json.loads(raw_data)
-        for k in data:
-            print "Key: %s -- Data: %d" % (k, data[k])
+        for key in data:
+            print "Key: %s -- Data: %d" % (key, data[key])
+            # Publish to MQTT
+            single(topic='particle/' + key, payload=data[key],
+                   hostname='test.mosquitto.org')
