@@ -1,7 +1,6 @@
 #define DATA_POINTS 4
 #define DELIM ','
 
-void getDataArr(String* data);
 String getData();
 bool broadcast;
 
@@ -20,25 +19,6 @@ void loop() {
     Serial.println(data);
     Particle.publish("Brdcst",data);
   }
-}
-
-void getDataArr(String* data) {
-  for (int i = 0; i < DATA_POINTS;i++) {
-    bool delimFound = false;
-    String datapoint = "";
-    // Check if we run into the delimiter or if there's nothing left on serial
-    while(!delimFound && Serial.available() > 0) {
-      char nextByte = Serial.read();
-      if (nextByte == DELIM) {
-        delimFound = true;
-      } else {
-        datapoint += nextByte;
-      }
-    }
-    data[i] = datapoint;
-  }
-  Serial.write("OK\r\n");
-  return;
 }
 
 String getData() {

@@ -14,6 +14,7 @@ LOOP_OFF = '00'
 
 BT_PERIOD = 60  # How often to clear the bluetooth device list and start over
 LORA_PERIOD = 5  # How many seconds between each Lora braodcast
+CELL_PERIOD = 10  # At least ~540 should be the final to use 1 mb per month
 SCAN_LEN = 2  # How long to scan bluetooth at one time
 
 # Set up grovepi
@@ -48,6 +49,7 @@ cam = picamera.PiCamera()
 
 bt_time = time.time()  # Init time for bluetooth device count cycles
 lora_time = time.time()  # Init time for LoRa cycles
+cell_time = time.time()  # Init time for cell cycles
 start_time = time.time()  # Init time for program run time
 
 lora_network_status = False
@@ -244,7 +246,8 @@ while(True):
             ser_command(lora_msg, lora_ser)
 
         # Cell broadcast
-        if len(old_broadcast_data) != 0:
+        if (len(old_broadcast_data) != 0) and (
+                time.time() - cell_time) > CELL_PERIOD:
             cell_msg = ''
             for i, d in enumerate(broadcast_data):
                 if not (d == old_broadcast_data[i]):
@@ -254,6 +257,7 @@ while(True):
             print old_broadcast_data
             print cell_msg
             ser_command(cell_msg, cell_ser)
+            cell_time = time.time()
         old_broadcast_data = broadcast_data
 
         print 'Cycled'
