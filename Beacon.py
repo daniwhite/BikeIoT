@@ -1,13 +1,14 @@
 """Program for beacon RPi."""
 
-import subprocess
-import serial
-from bluepy import btle
-import time
-import picamera
-import grovepi
 from multiprocessing import Process, Queue
 from Queue import Empty
+import subprocess
+import time
+
+from bluepy import btle
+import grovepi
+import picamera
+import serial
 
 LOOP_ON = '01'
 LOOP_OFF = '00'
@@ -51,7 +52,7 @@ cell_ser = serial.Serial(cell_device, cell_baudrate)
 # Data to send to cell
 broadcast_data = []
 old_broadcast_data = []
-prefixes = ["devs", "ld", "temp", "hum"]
+prefixes = ["devs", "ld", "temp", "hum"]  # Should match gateway MQTT order
 
 # Initialize camera
 cam = picamera.PiCamera()
@@ -137,7 +138,7 @@ def get_queue_data():
     """
     Get loopstate from queue.
 
-    Safe for all theads).
+    Safe for all theads.
     """
     global grove_data
     try:
@@ -221,7 +222,7 @@ while(True):
         print 'Loudness: ' + str(data[1])
         print 'Temperature: ' + str(data[2])
         print 'Humidity: ' + str(data[3])
-        print '****\n'
+        print '*****************\n'
 
         # Check LoRa network status
         if (time.time() - lora_network_time > LORA_NETWORK_PERIOD):
@@ -256,31 +257,35 @@ while(True):
             bt_time = time.time()
 
         broadcast_data = data[1:4]
-        broadcast_data.append(len(devices))
+        broadcast_data.insert(0, len(devices))
 
         # Lora broadcast
-        lora_msg = ''
-        for d in broadcast_data:
-            lora_msg += str(d) + ','
-        # Get rid of last comma, add newline
-        lora_msg = lora_msg[:len(lora_msg) - 1] + '\n'
         if (time.time() - lora_broadcast_time > LORA_BROADCAST_PERIOD) and (
                 lora_network_status):
-            lora_broadcast_time = time.time()
+            # Create message to broadcast
+            lora_msg = ''
+            for d in broadcast_data:
+                lora_msg += str(d) + ','
+            # Get rid of last comma, add newline
+            lora_msg = lora_msg[:len(lora_msg) - 1] + '\n'
+            # Send broadcast
             loraMsg = 'AT+SEND=' + lora_msg
             ser_command(lora_msg, lora_ser)
+            lora_broadcast_time = time.time()
 
         # Cell broadcast
         if (len(old_broadcast_data) != 0) and (
                 time.time() - cell_time) > CELL_PERIOD:
+            # Create message to broadcast
             cell_msg = ''
             for i, d in enumerate(broadcast_data):
                 if not (d == old_broadcast_data[i]):
                     cell_msg += prefixes[i] + ':' + str(d) + ','
             cell_msg = cell_msg[:len(cell_msg) - 1]
-            print broadcast_data
-            print old_broadcast_data
-            print cell_msg
+            print 'Old data: %s' % old_broadcast_data
+            print 'New data: %s' % broadcast_data
+            print 'Cell message: ' + cell_msg + '\n'
+            # Send broadcast
             ser_command(cell_msg, cell_ser)
             cell_time = time.time()
         old_broadcast_data = broadcast_data
