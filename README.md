@@ -1,12 +1,13 @@
-# bike-project
+# IoT Bike System
+Use this software to set up an IoT bike system with raspberry pis. The beacon raspberry pi, which taps into a bike traffic light, broadcasts to the receiver pi over bluetooth whether or not the traffic light has detected the bike. The beacon also sends information and sensor data back to a base station over cellular and LoRa.
 
 Hardware used
-=============
+------------
 **Receiver**:
 - Raspberry Pi 3
 
 **Beacon**:
-- Raspberry Pi
+- Raspberry Pi 3
 - MultiTech mDot X1P-SMA-1
 - SparkFun XBee Explorer Dongle
 - GrovePi
@@ -19,9 +20,8 @@ Hardware used
 - MultiTech MultiConnect AEP Conduit, with LoRa mCard
 
 Setup
-=====
-Beacon
-------
+-----
+**Beacon**
 - Uses **Beacon.sh** and **Beacon.py** files
   - **Beacon.py** must either be in /home/pi, or else the filepath in the last line of **Beacon.sh** must be changed
 - Install [bluepy](https://github.com/IanHarvey/bluepy), [pyserial](https://github.com/pyserial/pyserial), and [grovepi](https://github.com/DexterInd/GrovePi) (use will **Scripts/install.sh**).
@@ -41,8 +41,7 @@ shell=bin/bash
     - Use [these guidelines](https://docs.particle.io/guide/getting-started/data/electron/#ways-to-reduce-data-use) serve as a good way to save data
     - If using the atom particle package, make sure that only the particle project folder (with nothing that won't be going on the particle) is open when you compile
 
-Receiver
---------
+**Receiver**
 - Uses **Receiver.sh** and **Receiver.py** file
   - **Receiver.py** must either be in /home/pi, or else the filepath in the last line of **Receiver.sh** must be changed
 - Install [bluepy](https://github.com/IanHarvey/bluepy)
@@ -52,8 +51,8 @@ Receiver
 shell=bin/bash
 @reboot bash FILE_PATH >/home/pi/cronlog 2>&1
 ```
-mDot and Gateway
-----------------
+
+**mDot and Gateway**
 - Enable LoRa on Gateway through admin page (available at the IP address of the gateway). Go to *Setup* > *LoRa network server* and check *Enabled*
 - Set up serial communication to mDot (baudrate = 115200) and send command `AT`. You should get back `OK`.
 - Put both in public mode
@@ -66,6 +65,5 @@ mDot and Gateway
 - Once all settings are correct, use `AT&W` to save them.
 
 Additionally, the gateway will need the Node-RED flow imported. In Node-RED (*Apps* > *Node-RED*) go to *Import* > *Clipboard* and paste in **flow.JSON**.
-Other setup
------------
-- To run MQTT.py, install [paho-mqtt](https://pypi.python.org/pypi/paho-mqtt#id2) and [sseclient](https://github.com/mpetazzoni/sseclient)
+**Other setup**
+- To run MQTT.py, first install [paho-mqtt](https://pypi.python.org/pypi/paho-mqtt#id2) and [sseclient](https://github.com/mpetazzoni/sseclient)
