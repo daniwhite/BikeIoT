@@ -95,7 +95,7 @@ def broadcast(loopstate):
 
 def cleanup():
     broadcast_proc.terminate()
-    subprocess.call('sudo hciconfig hci0 down', shell=True)
+    subprocess.call('sudo hciconfig hci0 noleadv', shell=True)
     ser_command('Cell off', cell_ser)
     lora_ser.close()
     cell_ser.close()
