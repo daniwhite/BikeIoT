@@ -277,11 +277,10 @@ while(True):
         if (len(old_broadcast_data) != 0) and (
                 time.time() - cell_time) > CELL_PERIOD:
             # Create message to broadcast
-            cell_msg = ''
+            cell_msg = '{'
             for i, d in enumerate(broadcast_data):
-                if not (d == old_broadcast_data[i]):
-                    cell_msg += prefixes[i] + ':' + str(d) + ','
-            cell_msg = cell_msg[:len(cell_msg) - 1]
+                cell_msg += '"' + prefixes[i] + '":' + str(d) + ','
+            cell_msg = cell_msg[:len(cell_msg) - 1] + '}'
             print 'Old data: %s' % old_broadcast_data
             print 'New data: %s' % broadcast_data
             print 'Cell message: ' + cell_msg + '\n'

@@ -34,12 +34,17 @@ shell=bin/bash
 ```
 - Enable camera through `raspi-config`
 - Disable getty on serial: `sudo systemctl disable serial-getty@ttyAMA0.service`
-- Program Particle:
-  - Put it in [DFU mode](https://docs.particle.io/guide/getting-started/modes/electron/#dfu-mode-device-firmware-upgrade-)
-  - Flash firmware [over USB](https://github.com/spark/particle-cli#compiling-remotely-and-flashing-locally) using the CLI (usually `particle flash --usb firmware.bin`)
-  - *Notes for building software:*
-    - Use [these guidelines](https://docs.particle.io/guide/getting-started/data/electron/#ways-to-reduce-data-use) serve as a good way to save data
-    - If using the atom particle package, make sure that only the particle project folder (with nothing that won't be going on the particle) is open when you compile
+Particle instructions:
+- Install the [Particle CLI](https://github.com/spark/particle-cli)
+- To program it, put it in [DFU mode](https://docs.particle.io/guide/getting-started/modes/electron/#dfu-mode-device-firmware-upgrade-) and flash firmware [over USB](https://github.com/spark/particle-cli#compiling-remotely-and-flashing-locally) using the CLI (usually `particle flash --usb firmware.bin`)
+    - If using the atom particle package, make sure that only the particle project folder (with nothing that won't be going on the particle) is open when you compilw
+- To view the data, either run MQTT.py, or set up a webhook to work with [Zapier](zapier.com):
+  - Create a new zap and select *Webhooks* as the trigger. Choose *Catch Hook.*
+  - Copy the URL the *View Webhook* page and using the CLI, ussue the command `particle webhook create Brdcst URL`, where URL is your Zapier URL
+  - Skip the *Edit options* page and start the Beacon program while it's hooked up to the particle, then test the Webhook. The test should be successful.
+  - Add *Google Sheets* > *Create spreadsheet row* as an action. After logging in with your account, go to your Google Drive and create a new sheet. Add the headings "Time", "Devices", "Loudness", "Temperature", and "Humidity" to your sheet.
+  - Go back to Zapier and for each of the headings, select the corresponding field (e.g., Published At for Time, Data Loudness for Loudness).
+  - Test the step and start your zap!
 
 **Receiver**
 - Uses **Receiver.sh** and **Receiver.py** file
