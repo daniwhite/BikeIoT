@@ -34,6 +34,13 @@ shell=bin/bash
 ```
 - Enable camera through `raspi-config`
 - Disable getty on serial: `sudo systemctl disable serial-getty@ttyAMA0.service`
+- To use wifi, you may need to edit `/etc/wpa_supplicant/wpa_supplicant.conf` and add the following:
+```
+network={
+  ssid="YOUR_WIFI_NETWORK"
+  psk="YOUR_PASSWORD"
+}
+```
 Particle instructions:
 - Install the [Particle CLI](https://github.com/spark/particle-cli)
 - To program it, put it in [DFU mode](https://docs.particle.io/guide/getting-started/modes/electron/#dfu-mode-device-firmware-upgrade-) and flash firmware [over USB](https://github.com/spark/particle-cli#compiling-remotely-and-flashing-locally) using the CLI (usually `particle flash --usb firmware.bin`)
@@ -70,5 +77,7 @@ shell=bin/bash
 - Once all settings are correct, use `AT&W` to save them.
 
 Additionally, the gateway will need the Node-RED flow imported. In Node-RED (*Apps* > *Node-RED*) go to *Import* > *Clipboard* and paste in **flow.JSON**.
-**Other setup**
-- To run MQTT.py, first install [paho-mqtt](https://pypi.python.org/pypi/paho-mqtt#id2) and [sseclient](https://github.com/mpetazzoni/sseclient)
+
+**Server**
+- Uses **Server.py**
+- Requires MySQL as well as 2 python packages: [MySQLdb](https://pypi.python.org/pypi/MySQL-python/1.2.5) and [sseclient](https://github.com/mpetazzoni/sseclient)
