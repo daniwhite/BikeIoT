@@ -80,4 +80,6 @@ Additionally, the gateway will need the Node-RED flow imported. In Node-RED (*Ap
 
 **Server**
 - Uses **Server.py**
-- Requires MySQL as well as 2 python packages: [MySQLdb](https://pypi.python.org/pypi/MySQL-python/1.2.5) and [sseclient](https://github.com/mpetazzoni/sseclient)
+- Install MySQL
+  - Make sure you have a database named particle, a user named server, and a table named data
+- Install [MySQLdb](https://pypi.python.org/pypi/MySQL-python/1.2.5) and [sseclient](https://github.com/mpetazzoni/sseclient)
