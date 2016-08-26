@@ -7,6 +7,7 @@ import sys
 LOOP_ON = '01'
 LOOP_OFF = '00'
 DEBUG = False
+
 # Initalize GPIO
 comm_light = 15
 loop_light = 14
@@ -53,6 +54,7 @@ def main(args):
                     se_data = d.getScanData()
                     msg = d.getValueText(7)
                     if DEBUG:
+                        print('address: 0x%x' % d.addr)
                         for adtype, description, value in se_data:
                             print(adtype, description, value)
                     if (not (msg is None)):
