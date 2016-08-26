@@ -50,9 +50,11 @@ def main(args):
                 if (new_scan) and DEBUG:
                     print '***NEW SCAN***'
                 for d in s:
+                    se_data = d.getScanData()
                     msg = d.getValueText(7)
                     if DEBUG:
-                        print msg
+                        for adtype, description, value in se_data:
+                            print(adtype, description, value)
                     if (not (msg is None)):
                         if msg[:len(msg) - 2] == key:
                             beacon_detected = True
