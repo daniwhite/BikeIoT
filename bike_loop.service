@@ -1,0 +1,12 @@
+# Rickie Kerndt <rkerndt@cs.uoregon.edu>
+# systemd service file to start, status and shutdown the signal loop receiver
+# This file should be located under directory /etc/systemd/system
+
+[Unit]
+    Description=Bluetooth LE Traffic Light Loop Detection
+    Requires=bluetooth.service
+    After=bluetooth.service
+
+[service]
+    Type=simple
+    ExecStart=python /home/pi/lib/python/Receiver.py
