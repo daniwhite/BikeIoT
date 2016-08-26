@@ -1,94 +1,50 @@
-#!/usr/bin/env python
+"""SVM HOG detector, based on opencv digits.py example."""
 
-'''
-SVM and KNearest digit recognition.
-
-Sample loads a dataset of handwritten digits from '../data/digits.png'.
-Then it trains a SVM and KNearest classifiers on it and evaluates
-their accuracy.
-
-Following preprocessing is applied to the dataset:
- - Moment-based image deskew (see deskew())
- - Digit images are split into 4 10x10 cells and 16-bin
-   histogram of oriented gradients is computed for each
-   cell
- - Transform histograms to space with Hellinger metric (see [1] (RootSIFT))
-
-
-[1] R. Arandjelovic, A. Zisserman
-    "Three things everyone should know to improve object retrieval"
-    http://www.robots.ox.ac.uk/~vgg/publications/2012/Arandjelovic12/arandjelovic12.pdf
-
-Usage:
-   digits.py
-'''
-
-
-# Python 2/3 compatibility
-
-# built-in modules
 from multiprocessing.pool import ThreadPool
 import os
-
+import sys
 import cv2
 
 import numpy as np
 from numpy.linalg import norm
+from common import mosaic
 
 CLASS_N = 10
-NEG_SCALE_FACTOR = 0.2
+NEG_SCALE_FACTOR = 1
 
 imgs_dir = './'
 
-svm_params = dict( kernel_type = cv2.SVM_LINEAR,
+svm_params = dict( kernel_type = cv2.SVM_RBF,
                     svm_type = cv2.SVM_C_SVC,
-                    C=2.67, gamma=5.383 )
+                    C=1000, gamma=60 ) # Previously tuned
 
-def load_imgs(path, scale_factor=1):
+def load_imgs(path, label):
+    """Load data from file."""
+    imgs = []
     samples = []
+    labels = []
     counter = 0
+    total = len(os.listdir(path))
     for i in os.listdir(path):
-        print i
-        print counter
+        print '%.2f%% done with %s, currently %s\r' % (100*(counter/float(total)),
+            path, i),
+        sys.stdout.flush()
         img = cv2.imread(path + i)
-        if scale_factor != 1:
-            img = cv2.resize(img, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_AREA)
         samples.append(preprocess_hog(img))
         counter += 1
-    return samples
+        imgs.append(img)
+        labels.append(label)
+    print '100%% done with %s\r' % path
+    sys.stdout.flush()
+    return samples, imgs, labels
 
-def split2d(img, cell_size, flatten=True):
-    h, w = img.shape[:2]
-    sx, sy = cell_size
-    cells = [np.hsplit(row, w//sx) for row in np.vsplit(img, h//sy)]
-    cells = np.array(cells)
-    if flatten:
-        cells = cells.reshape(-1, sy, sx)
-    return cells
-
-class StatModel(object):
-    def load(self, fn):
-        self.model.load(fn)  # Known bug: https://github.com/opencv/opencv/issues/4969
-    def save(self, fn):
-        self.model.save(fn)
-
-'''
-class SVM(StatModel):
-    def __init__(self, C = 1, gamma = 0.5):
-        self.model = cv2.ml.SVM_create()
-        self.model.setGamma(gamma)
-        self.model.setC(C)
-        self.model.setKernel(cv2.ml.SVM_RBF)
-        self.model.setType(cv2.ml.SVM_C_SVC)
-
-    def train(self, samples, responses):
-        self.model.train(samples, cv2.ml.ROW_SAMPLE, responses)
-
-    def predict(self, samples):
-        return self.model.predict(samples)[1].ravel()
-        '''
 
 def preprocess_hog(img):
+    """
+    Calculate HOG value.
+
+    Almost unchanged from digits.py, except it's called on each img on its own.
+    """
     gx = cv2.Sobel(img, cv2.CV_32F, 1, 0)
     gy = cv2.Sobel(img, cv2.CV_32F, 0, 1)
     mag, ang = cv2.cartToPolar(gx, gy)
@@ -109,35 +65,52 @@ def preprocess_hog(img):
 
 
 if __name__ == '__main__':
-    print(__doc__)
+    # Preprocess
+    pos_imgs_hog, pos_imgs, pos_labels = load_imgs(imgs_dir + 'Pos/',1)
+    neg_imgs_hog, neg_imgs,neg_labels = load_imgs(imgs_dir + 'Neg/',-1)
 
-    print('preprocessing...')
-    pos_imgs_hog = load_imgs(imgs_dir + 'Pos/')
-    neg_imgs_hog = load_imgs(imgs_dir + 'Neg/', NEG_SCALE_FACTOR)
-    labels = [1] * len(pos_imgs_hog) + [-1] * len(neg_imgs_hog)
+    imgs = pos_imgs + neg_imgs
+    labels = pos_labels + neg_labels
+
+    imgs, labels = np.asarray(imgs), np.asarray(labels)
+
     samples = pos_imgs_hog + neg_imgs_hog
     samples = np.float32(samples)
 
-    # Shuffle tests
-    rng_state = np.random.get_state()
-    np.random.shuffle(samples)
-    np.random.set_state(rng_state)
-    np.random.shuffle(labels)
-
     train_n = int(0.9*len(samples))
+
+    # Shuffle data
+    rand = np.random.RandomState()
+    shuffle = rand.permutation(len(imgs))
+    imgs, labels, samples = imgs[shuffle], labels[shuffle], samples[shuffle]
+
+    # Separate training data from testing data
     samples_train, samples_test = np.split(samples, [train_n])
     labels_train, labels_test = np.split(labels, [train_n])
+    imgs = imgs[train_n:]
 
-    print('training SVM...')
+    # Initialize model
     model = cv2.SVM(samples_train, labels_train, params=svm_params)
-
     resp = model.predict_all(samples_test)
-    print 'Response:'
-    print resp
-    print 'Labels:'
-    print labels_test
+
+    # Calulate error, etc.
     err = (labels_test != resp).mean()
-    print('error: %.2f %%' % (err*100))
-    #cv2.imshow('SVM test', vis)
-    print('saving SVM as "svm.dat"...')
+    print('Error: %.2f %%' % (err*100))
+    # Count total number of positives and negatives
+    pos = resp.flatten().tolist().count(1)
+    neg = resp.flatten().tolist().count(-1)
+    # Calculate false positives vs false negatives
+    false_pos = 0
+    false_neg = 0
+    correct = 0
+    for i in range(0, len(resp)):
+        if resp.flatten()[i] > labels_test[i]:
+            false_pos += 1
+        elif resp.flatten()[i] < labels_test[i]:
+            false_neg += 1
+        elif resp.flatten()[i] == labels_test[i]:
+            correct += 1
+    print 'pos=%s, neg=%s, -pos=%s, -neg=%s' % (pos, neg, false_pos, false_neg)
+
+    # Save model
     model.save('svm.dat')
