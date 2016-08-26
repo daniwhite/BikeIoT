@@ -54,7 +54,7 @@ def main(args):
                     se_data = d.getScanData()
                     msg = d.getValueText(7)
                     if DEBUG:
-                        print('address: 0x%x' % d.addr)
+                        print('address: %s' % d.addr)
                         for adtype, description, value in se_data:
                             print(adtype, description, value)
                     if (not (msg is None)):
