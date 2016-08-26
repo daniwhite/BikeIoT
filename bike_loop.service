@@ -7,6 +7,9 @@
     Requires=bluetooth.service
     After=bluetooth.service
 
-[service]
+[Service]
     Type=simple
     ExecStart=python /home/pi/lib/python/Receiver.py
+
+[Install]
+    WantedBy=multi-user.target
