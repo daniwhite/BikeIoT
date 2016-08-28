@@ -3,6 +3,7 @@
 from bluepy import btle
 import RPi.GPIO as GPIO
 import sys
+import signal
 
 # add pi python module dir to sys.path
 sys.path.append("/home/pi/lib/python")
@@ -10,14 +11,25 @@ import rgb
 
 LOOP_ON = '01'
 LOOP_OFF = '00'
+DEBUG = False
+# global led so can access it from signal handler
+led = None
 
+def sig_handler():
+    global led
+    led.close()
+    exit()
 
 def main(args):
-    DEBUG = False
+    global led, DEBUG
+
     if len(args) >= 2 and args[1] == "debug":
         DEBUG = True
 
     led = rgb.RGB_led(21,20,16)
+
+    # Handle sigterm so we can exit gracefully
+    signal.signal(signal.SIGTERM, sig_handler)
 
     # Initalize bluetooth
     SCAN_LEN = 0.5
