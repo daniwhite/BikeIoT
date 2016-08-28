@@ -4,24 +4,21 @@ from bluepy import btle
 import RPi.GPIO as GPIO
 import sys
 
+# add pi python module dir to sys.path
+sys.path.append("/home/pi/lib/python")
+import rgb
+
 LOOP_ON = '01'
 LOOP_OFF = '00'
 DEBUG = False
 
-# Initalize GPIO
-comm_light = 15
-loop_light = 14
 
 def main(args):
 
     if len(args) >= 2 and args[1] == "debug":
         DEBUG = True
 
-    GPIO.setmode(GPIO.BCM)  # GPIO will use Broadcom pin numbers
-    GPIO.setwarnings(False)
-
-    GPIO.setup(comm_light, GPIO.OUT, initial=GPIO.LOW)
-    GPIO.setup(loop_light, GPIO.OUT, initial=GPIO.LOW)
+    led = rgb.RGB_led(21,20,16)
 
     # Initalize bluetooth
     SCAN_LEN = 0.5
@@ -51,22 +48,17 @@ def main(args):
                 if (new_scan) and DEBUG:
                     print '***NEW SCAN***'
                 for d in s:
-                    se_data = d.getScanData()
                     msg = d.getValueText(7)
                     if DEBUG:
                         print('address: %s' % d.addr)
-                        for adtype, description, value in se_data:
+                        for adtype, description, value in d.getScanData():
                             print(adtype, description, value)
-                    if (not (msg is None)):
+                    if msg is not None:
                         if msg[:len(msg) - 2] == key:
                             beacon_detected = True
                             data = msg[len(msg) - 2:]
-                            if DEBUG:
-                                print data
                             if new_scan and not (data == ''):
                                 databuf.insert(0, data)
-                                if DEBUG:
-                                    print databuf
                 if new_scan and DEBUG:
                     print '******'
                 new_scan = False
@@ -75,13 +67,19 @@ def main(args):
             if len(databuf) > LOOP_BUF_LEN:
                 databuf.pop(len(databuf) - 1)
             loop_state = LOOP_ON in databuf
+
             # Set lights
-            if DEBUG:
-                print 'Comm light: %s' % beacon_detected
-            GPIO.output(comm_light, beacon_detected)
-            if DEBUG:
-                print 'Loop light: %s' % beacon_detected and loop_state
-            GPIO.output(loop_light, beacon_detected and loop_state)
+            if beacon_detected:
+                if DEBUG:
+                    print 'Comm light: %s' % beacon_detected
+                if loop_state:
+                    if DEBUG:
+                        print 'Loop light: %s' % beacon_detected and loop_state
+                    led.blue()
+                else:
+                    led.red()
+            else:
+                led.green(True)
             if DEBUG:
                 print
     except btle.BTLEException:
