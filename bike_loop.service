@@ -8,8 +8,9 @@
     After=bluetooth.service
 
 [Service]
-    Type=simple
-    ExecStart=python /home/pi/lib/python/Receiver.py
+    Type=idle
+    KillMode=process
+    ExecStart=/usr/bin/python /home/pi/lib/python/Receiver.py
 
 [Install]
     WantedBy=multi-user.target
