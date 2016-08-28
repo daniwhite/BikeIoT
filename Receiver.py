@@ -15,7 +15,7 @@ DEBUG = False
 # global led so can access it from signal handler
 led = None
 
-def sig_handler():
+def sig_handler(signum, frame):
     global led
     led.close()
     exit()
