@@ -10,11 +10,10 @@ import rgb
 
 LOOP_ON = '01'
 LOOP_OFF = '00'
-DEBUG = False
 
 
 def main(args):
-
+    DEBUG = False
     if len(args) >= 2 and args[1] == "debug":
         DEBUG = True
 
