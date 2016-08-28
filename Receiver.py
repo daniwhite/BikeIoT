@@ -83,6 +83,9 @@ def main(args):
                 print
     except btle.BTLEException:
         print 'Must run as root user'
+    except KeyboardInterrupt:
+        led.close()
+        exit()
     except:
         GPIO.cleanup()
         raise
