@@ -23,9 +23,11 @@ def sig_handler(signum, frame):
     exit()
 
 def main(args):
-    global led, DEBUG
+    global led, DEBUG, RSSI_THREASHOLD
 
-    if len(args) >= 2 and args[1] == "debug":
+    if len(args) >= 2:
+        RSSI_THREASHOLD = int(args[1])
+    if len(args) >= 3 and args[2] == "debug":
         DEBUG = True
 
     led = rgb.RGB_led(21,20,16)
