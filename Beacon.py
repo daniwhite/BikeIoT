@@ -10,6 +10,8 @@ import grovepi
 import picamera
 import serial
 
+DEBUG = True
+
 LOOP_ON = '01'
 LOOP_OFF = '00'
 
@@ -58,7 +60,8 @@ def bt_process():
             set_queue_data(data)
             broadcast(data[0])
     except IOError:
-        print 'IOError detected and excepted'
+        if DEBUG:
+            print 'IOError detected and excepted'
         pass
 
 
@@ -96,10 +99,11 @@ def cleanup():
     cell_ser.close()
     # Print how long the program ran for
     now = time.time()
-    print (now - times['general']) // 60,
-    print " min ",
-    print now % 60,
-    print "sec"
+    if DEBUG:
+        print (now - times['general']) // 60,
+        print " min ",
+        print now % 60,
+        print "sec"
 
 
 def get_data():
@@ -146,7 +150,8 @@ def ser_command(str, ser, responses=['OK\r\n']):
         try:
             msg = ser.readline()
         except OSError, serial.SerialException:
-            print 'Unable to read. Is something else using the serial port?'
+            if DEBUG:
+                print 'Unable to read. Is something else using the serial port?'
     return msg
 
 
@@ -175,7 +180,8 @@ while(True):
     try:
         # Start bluetooth broadcast in parallel
         if not broadcast_proc.is_alive():
-            print 'Starting new bluetooth process'
+            if DEBUG:
+                print 'Starting new bluetooth process'
             del(broadcast_proc)
             broadcast_proc = Process(target=bt_process)
             broadcast_proc.start()
@@ -184,15 +190,17 @@ while(True):
         data = get_queue_data()
         # If there's no data, wait a bit
         if (len(data) == 0):
-            print 'Waiting for queue data' + '\r',
+            if DEBUG:
+                print 'Waiting for queue data' + '\r',
             continue
 
-        # Print sensor data
-        print '\n** Sensor data **'
-        print 'Loudness: ' + str(data[1])
-        print 'Temperature: ' + str(data[2])
-        print 'Humidity: ' + str(data[3])
-        print '*****************\n'
+        if DEBUG:
+            # Print sensor data
+            print '\n** Sensor data **'
+            print 'Loudness: ' + str(data[1])
+            print 'Temperature: ' + str(data[2])
+            print 'Humidity: ' + str(data[3])
+            print '*****************\n'
 
         # Take picture if loop is triggered
         if data[0]:
@@ -206,10 +214,11 @@ while(True):
                     break
             else:
                 devices.append(s_dev)
-        # Print device count
-        print 'Devices found since ',
-        print time.ctime(times['bluetooth']),
-        print ' : %d\n' % len(devices)
+        if DEBUG:
+            # Print device count
+            print 'Devices found since ',
+            print time.ctime(times['bluetooth']),
+            print ' : %d\n' % len(devices)
         # Check if we need to refresh the list
         if(time.time() - times['bluetooth'] > BT_PERIOD):
             devices = []
@@ -226,15 +235,17 @@ while(True):
             for i, d in enumerate(broadcast_data):
                 cell_msg += '"' + prefixes[i] + '":' + str(d) + ','
             cell_msg = cell_msg[:len(cell_msg) - 1] + '}'
-            print 'Old data: %s' % old_broadcast_data
-            print 'New data: %s' % broadcast_data
-            print 'Cell message: ' + cell_msg + '\n'
+            if DEBUG:
+                print 'Old data: %s' % old_broadcast_data
+                print 'New data: %s' % broadcast_data
+                print 'Cell message: ' + cell_msg + '\n'
             # Send broadcast
             ser_command(cell_msg, cell_ser)
             cell_time = time.time()
         old_broadcast_data = broadcast_data
 
-        print 'Cycled'
+        if DEBUG:
+            print 'Cycled'
     except:
         cleanup()
         raise
