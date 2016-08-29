@@ -69,7 +69,7 @@ def main(args):
                     if DEBUG:
                         print('address: %s, rssi: %d' % (d.addr,d.rssi))
                         for adtype, description, value in d.getScanData():
-                            print('\t %s, %s, %s' % adtype, description, value)
+                            print('\t %s, %s, %s' % (adtype, description, value))
                     if msg is not None:
                         if msg[:len(msg) - 2] == key:
                             beacon_detected = True
