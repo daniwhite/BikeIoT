@@ -67,7 +67,7 @@ def main(args):
                         continue
                     msg = d.getValueText(7)
                     if DEBUG:
-                        print('address: %s' % d.addr)
+                        print('address: %s, rssi: %d' % (d.addr,d.rssi))
                         for adtype, description, value in d.getScanData():
                             print(adtype, description, value)
                     if msg is not None:
