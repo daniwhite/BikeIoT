@@ -16,16 +16,14 @@ LOOP_OFF = '00'
 BT_PERIOD = 60  # How often to clear the bluetooth device list and start over
 LORA_BROADCAST_PERIOD = 5  # Seconds between each Lora braodcast
 LORA_NETWORK_PERIOD = 60*60  # Seconds between trying to reconnect to LoRa
-CELL_PERIOD = 10  # At least ~540 should be the final to use 1 mb per month
+CELL_PERIOD = 10  # At least ~540 to use 1 mb per month
 SCAN_LEN = 2  # How long to scan bluetooth at one time
 
 # Set up start times
-bt_time = time.time()  # Init time for bluetooth device count cycles
-lora_broadcast_time = time.time()  # Init time for LoRa cycles
-lora_network_time = time.time()  # Init time for Lora Connection
-lora_network_time -= LORA_NETWORK_PERIOD  # Will attempt to connect right away
-cell_time = time.time()  # Init time for cell cycles
-start_time = time.time()  # Init time for program run time
+keys = ['bluetooth', 'lora-broadcast', 'lora-network', 'cell', 'general']
+values = [time.time()] * len(keys)
+times = dict(zip(keys, values))
+times['lora-network'] -= LORA_NETWORK_PERIOD  # Means we connect right away
 
 # Set up grovepi
 LOUDNESS_SENSOR = 0  # Connect to A0
@@ -107,7 +105,7 @@ def cleanup():
     cell_ser.close()
     # Print how long the program ran for
     now = time.time()
-    print (now - start_time) // 60,
+    print (now - times['general']) // 60,
     print " min ",
     print now % 60,
     print "sec"
@@ -225,7 +223,7 @@ while(True):
         print '*****************\n'
 
         # Check LoRa network status
-        if (time.time() - lora_network_time > LORA_NETWORK_PERIOD):
+        if (time.time() - times['lora-network'] > LORA_NETWORK_PERIOD):
             if(ser_command(
                         'AT+NJS\n', lora_ser, ['0\r\n', '1\r\n']) == '0\r\n'):
                     lora_join_network(5)
@@ -233,7 +231,7 @@ while(True):
                         print 'Network joined successfully!'
                     else:
                         print 'Network join failed.'
-            lora_network_time = time.time()
+            times['lora-network'] = time.time()
 
         # Take picture if loop is triggered
         if data[0]:
@@ -249,10 +247,10 @@ while(True):
                 devices.append(s_dev)
         # Print device count
         print 'Devices found since ',
-        print time.ctime(bt_time),
+        print time.ctime(times['bluetooth']),
         print ' : %d\n' % len(devices)
         # Check if we need to refresh the list
-        if(time.time() - bt_time > BT_PERIOD):
+        if(time.time() - times['bluetooth'] > BT_PERIOD):
             devices = []
             bt_time = time.time()
 
@@ -260,7 +258,7 @@ while(True):
         broadcast_data.insert(0, len(devices))
 
         # Lora broadcast
-        if (time.time() - lora_broadcast_time > LORA_BROADCAST_PERIOD) and (
+        if (time.time() - times['lora-broadcast'] > LORA_BROADCAST_PERIOD) and (
                 lora_network_status):
             # Create message to broadcast
             lora_msg = ''
@@ -275,7 +273,7 @@ while(True):
 
         # Cell broadcast
         if (len(old_broadcast_data) != 0) and (
-                time.time() - cell_time) > CELL_PERIOD:
+                time.time() - times['cell']) > CELL_PERIOD:
             # Create message to broadcast
             cell_msg = '{'
             for i, d in enumerate(broadcast_data):
