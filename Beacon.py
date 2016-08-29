@@ -16,15 +16,17 @@ LOOP_ON = '01'
 LOOP_OFF = '00'
 
 BROADCAST_PERIOD = 60*60  # At least ~540 to use 1 mb per month
+CAM_PERIOD = 12  # How often to take a picture
 SCAN_LEN = 2  # How long to scan bluetooth at one time
 
 # Initialize start time for periodic events
 cycle_time = time.time()
+cam_time = time.time()
 
 # Set up grovepi
 LOUDNESS_SENSOR = 0  # Connect to A0
 TEMP_HUM_SENSOR = 6  # Connect to D6
-SWITCH = 5
+SWITCH = 5  # Connect to D5
 grovepi.pinMode(LOUDNESS_SENSOR, "INPUT")
 grovepi.pinMode(TEMP_HUM_SENSOR, "INPUT")
 grovepi.pinMode(SWITCH, "INPUT")
@@ -108,6 +110,16 @@ def get_data():
     return [loopstate, loudness, temp, hum]
 
 
+def get_space():
+    """Return what percent of space is left for images."""
+    df = subprocess.Popen(["df", "Images"], stdout=subprocess.PIPE)
+    output = df.communicate()[0]
+    output = output.split('\n')[1]
+    output = output.split(' ')[13]  # There are a lot of spaces in df output
+    output = int(output(1))
+    return output
+
+
 def get_loopstate():
     """
     Get state of loop, with whatever the system ends up being.
@@ -146,7 +158,7 @@ def ser_command(str, ser, responses=['OK\r\n']):
 
 
 def set_queue_data(data):
-    """Set loopstate in queue."""
+    """Set data in queue."""
     while(not grove_queue.empty):
         grove_queue.get()
     grove_queue.put(data)
@@ -192,9 +204,12 @@ while(True):
             print 'Humidity: ' + str(data[3])
             print '*****************\n'
 
-        # Take picture if loop is triggered
-        if data[0]:
-            take_img()
+        # Take picture
+        if time.time() - cam_time > CAM_PERIOD:
+            cam_time = time.time()
+            if time.localtime().tm_hour > 21 or time.localtime.tm_hour < 5:
+                if get_space() < 95:
+                    take_img()
 
         # Check for new devices
         scan_devices = sc.scan(SCAN_LEN)
