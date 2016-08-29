@@ -98,9 +98,6 @@ def main(args):
     except KeyboardInterrupt:
         led.close()
         exit()
-    except:
-        GPIO.cleanup()
-        raise
 
 if __name__ == "__main__":
     main(sys.argv)
