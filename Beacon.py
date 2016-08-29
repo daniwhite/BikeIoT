@@ -207,7 +207,7 @@ while(True):
         # Take picture
         if time.time() - cam_time > CAM_PERIOD:
             cam_time = time.time()
-            if time.localtime().tm_hour > 21 or time.localtime.tm_hour < 5:
+            if time.localtime().tm_hour > 21 or time.localtime().tm_hour < 5:
                 if get_space() < 95:
                     take_img()
 
