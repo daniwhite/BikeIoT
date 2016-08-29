@@ -12,6 +12,8 @@ import rgb
 LOOP_ON = '01'
 LOOP_OFF = '00'
 DEBUG = False
+RSSI_THREASHOLD = 70
+
 # global led so can access it from signal handler
 led = None
 
@@ -59,6 +61,8 @@ def main(args):
                 if (new_scan) and DEBUG:
                     print '***NEW SCAN***'
                 for d in s:
+                    if d.rssi < RSSI_THREASHOLD:
+                        continue
                     msg = d.getValueText(7)
                     if DEBUG:
                         print('address: %s' % d.addr)
