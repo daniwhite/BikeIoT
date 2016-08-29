@@ -14,16 +14,13 @@ LOOP_ON = '01'
 LOOP_OFF = '00'
 
 BT_PERIOD = 60  # How often to clear the bluetooth device list and start over
-LORA_BROADCAST_PERIOD = 5  # Seconds between each Lora braodcast
-LORA_NETWORK_PERIOD = 60*60  # Seconds between trying to reconnect to LoRa
 CELL_PERIOD = 10  # At least ~540 to use 1 mb per month
 SCAN_LEN = 2  # How long to scan bluetooth at one time
 
 # Set up start times
-keys = ['bluetooth', 'lora-broadcast', 'lora-network', 'cell', 'general']
+keys = ['bluetooth', 'cell', 'general']
 values = [time.time()] * len(keys)
 times = dict(zip(keys, values))
-times['lora-network'] -= LORA_NETWORK_PERIOD  # Means we connect right away
 
 # Set up grovepi
 LOUDNESS_SENSOR = 0  # Connect to A0
@@ -40,9 +37,6 @@ devices = []
 sc = btle.Scanner(0)
 
 # Initialize serial
-lora_device = '/dev/ttyUSB0'
-lora_baudrate = 115200
-lora_ser = serial.Serial(lora_device, lora_baudrate)
 cell_device = '/dev/ttyACM0'
 cell_baudrate = 115200
 cell_ser = serial.Serial(cell_device, cell_baudrate)
@@ -54,8 +48,6 @@ prefixes = ["devs", "ld", "temp", "hum"]  # Should match gateway MQTT order
 
 # Initialize camera
 cam = picamera.PiCamera()
-
-lora_network_status = False
 
 
 def bt_process():
@@ -101,7 +93,6 @@ def cleanup():
     broadcast_proc.terminate()
     subprocess.call('sudo hciconfig hci0 noleadv', shell=True)
     ser_command('Cell off', cell_ser)
-    lora_ser.close()
     cell_ser.close()
     # Print how long the program ran for
     now = time.time()
@@ -147,28 +138,9 @@ def get_queue_data():
     return grove_data
 
 
-def lora_join_network(timeout=-1):
-    """
-    Send AT command to join LoRa network.
-
-    Timout of -1 means wait for connection forever, 0 means don't wait at all.
-    """
-    str = ''
-    start_time = time.time()
-    while(not (str == 'Successfully joined network\r\n')):
-        str = ser_command('AT+JOIN\n', lora_ser, [
-            'Join Error - Failed to join network\r\n',
-            'Successfully joined network\r\n'])
-        if (timeout >= 0 and time.time() - start_time > timeout):
-            return False
-    return True
-
-
 def ser_command(str, ser, responses=['OK\r\n']):
     """Send command over serial, then returns its response."""
     ser.write(str)
-    if ser == lora_ser:
-        ser.readline()
     msg = ''
     while (msg not in responses):
         try:
@@ -222,17 +194,6 @@ while(True):
         print 'Humidity: ' + str(data[3])
         print '*****************\n'
 
-        # Check LoRa network status
-        if (time.time() - times['lora-network'] > LORA_NETWORK_PERIOD):
-            if(ser_command(
-                        'AT+NJS\n', lora_ser, ['0\r\n', '1\r\n']) == '0\r\n'):
-                    lora_join_network(5)
-                    if lora_network_status:
-                        print 'Network joined successfully!'
-                    else:
-                        print 'Network join failed.'
-            times['lora-network'] = time.time()
-
         # Take picture if loop is triggered
         if data[0]:
             take_img()
@@ -256,20 +217,6 @@ while(True):
 
         broadcast_data = data[1:4]
         broadcast_data.insert(0, len(devices))
-
-        # Lora broadcast
-        if (time.time() - times['lora-broadcast'] > LORA_BROADCAST_PERIOD) and (
-                lora_network_status):
-            # Create message to broadcast
-            lora_msg = ''
-            for d in broadcast_data:
-                lora_msg += str(d) + ','
-            # Get rid of last comma, add newline
-            lora_msg = lora_msg[:len(lora_msg) - 1] + '\n'
-            # Send broadcast
-            loraMsg = 'AT+SEND=' + lora_msg
-            ser_command(lora_msg, lora_ser)
-            lora_broadcast_time = time.time()
 
         # Cell broadcast
         if (len(old_broadcast_data) != 0) and (
