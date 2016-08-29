@@ -15,14 +15,11 @@ DEBUG = True
 LOOP_ON = '01'
 LOOP_OFF = '00'
 
-BT_PERIOD = 60  # How often to clear the bluetooth device list and start over
-CELL_PERIOD = 10  # At least ~540 to use 1 mb per month
+BROADCAST_PERIOD = 60*60  # At least ~540 to use 1 mb per month
 SCAN_LEN = 2  # How long to scan bluetooth at one time
 
-# Set up start times
-keys = ['bluetooth', 'cell', 'general']
-values = [time.time()] * len(keys)
-times = dict(zip(keys, values))
+# Initialize start time for periodic events
+cycle_time = time.time()
 
 # Set up grovepi
 LOUDNESS_SENSOR = 0  # Connect to A0
@@ -97,13 +94,6 @@ def cleanup():
     subprocess.call('sudo hciconfig hci0 noleadv', shell=True)
     ser_command('Cell off', cell_ser)
     cell_ser.close()
-    # Print how long the program ran for
-    now = time.time()
-    if DEBUG:
-        print (now - times['general']) // 60,
-        print " min ",
-        print now % 60,
-        print "sec"
 
 
 def get_data():
@@ -151,7 +141,7 @@ def ser_command(str, ser, responses=['OK\r\n']):
             msg = ser.readline()
         except OSError, serial.SerialException:
             if DEBUG:
-                print 'Unable to read. Is something else using the serial port?'
+                print 'Unable to read. Is something else using the port?'
     return msg
 
 
@@ -217,19 +207,14 @@ while(True):
         if DEBUG:
             # Print device count
             print 'Devices found since ',
-            print time.ctime(times['bluetooth']),
-            print ' : %d\n' % len(devices)
-        # Check if we need to refresh the list
-        if(time.time() - times['bluetooth'] > BT_PERIOD):
-            devices = []
-            bt_time = time.time()
+            print cycle_time
 
         broadcast_data = data[1:4]
         broadcast_data.insert(0, len(devices))
 
         # Cell broadcast
         if (len(old_broadcast_data) != 0) and (
-                time.time() - times['cell']) > CELL_PERIOD:
+                time.time() - cycle_time) > BROADCAST_PERIOD:
             # Create message to broadcast
             cell_msg = '{'
             for i, d in enumerate(broadcast_data):
@@ -241,7 +226,9 @@ while(True):
                 print 'Cell message: ' + cell_msg + '\n'
             # Send broadcast
             ser_command(cell_msg, cell_ser)
-            cell_time = time.time()
+            cycle_time = time.time()
+            # Wipe bluetooth devices after sending cell message
+            devices = []
         old_broadcast_data = broadcast_data
 
         if DEBUG:
