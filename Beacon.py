@@ -12,6 +12,7 @@ import picamera
 import serial
 
 DEBUG = False
+CELL = False  # Debugging other functions goes faster w/o cellular
 
 LOOP_ON = '01'
 LOOP_OFF = '00'
@@ -106,8 +107,9 @@ def cleanup():
     """Clean up at program end."""
     broadcast_proc.terminate()
     subprocess.call('sudo hciconfig hci0 noleadv', shell=True)
-    ser_command('Cell off', cell_ser)
-    cell_ser.close()
+    if CELL:
+        ser_command('Cell off', cell_ser)
+        cell_ser.close()
     grovepi.digitalWrite(LED, 0)
 
 
@@ -129,7 +131,7 @@ def get_space():
     output = df.communicate()[0]
     output = output.split('\n')[1]
     output = output.split(' ')[13]  # There are a lot of spaces in df output
-    output = int(output(1))
+    output = int(output[0])
     return output
 
 
@@ -188,7 +190,8 @@ def take_img(folder_path):
 # Setup code for before running loop
 broadcast_proc = Process(target=bt_process)
 # Turn on cellular
-ser_command('Cell on', cell_ser)
+if CELL:
+    ser_command('Cell on', cell_ser)
 
 # Main loop
 while(True):
@@ -218,9 +221,13 @@ while(True):
             print '*****************\n'
 
         # Take picture
+        if DEBUG:
+            print 'Night? %s ' % (time.localtime().tm_hour > 21 or time.localtime().tm_hour < 5)
         if time.time() - cam_time > CAM_PERIOD:
             cam_time = time.time()
-            if time.localtime().tm_hour > 21 or time.localtime().tm_hour < 5:
+            if not (time.localtime().tm_hour > 21 or time.localtime().tm_hour < 5):
+                if DEBUG:
+                    print 'Space left: %d%%' % get_space()
                 if get_space() < 95:
                     take_img(IMG_PATH)
 
@@ -249,18 +256,19 @@ while(True):
         # Cell broadcast
         if (len(old_broadcast_data) != 0) and ((
                 time.time() - broadcast_time) > BROADCAST_PERIOD):
-            # Create message to broadcast
-            cell_msg = '{'
-            for i, d in enumerate(broadcast_data):
-                cell_msg += '"' + prefixes[i] + '":' + str(d) + ','
-            cell_msg = cell_msg[:len(cell_msg) - 1] + '}'
-            if DEBUG:
-                print 'Old data: %s' % old_broadcast_data
-                print 'New data: %s' % broadcast_data
-                print 'Cell message: ' + cell_msg + '\n'
-            # Send broadcast
-            ser_command(cell_msg, cell_ser)
-            broadcast_time = time.time()
+            if CELL:
+                # Create message to broadcast
+                cell_msg = '{'
+                for i, d in enumerate(broadcast_data):
+                    cell_msg += '"' + prefixes[i] + '":' + str(d) + ','
+                cell_msg = cell_msg[:len(cell_msg) - 1] + '}'
+                if DEBUG:
+                    print 'Old data: %s' % old_broadcast_data
+                    print 'New data: %s' % broadcast_data
+                    print 'Cell message: ' + cell_msg + '\n'
+                # Send broadcast
+                ser_command(cell_msg, cell_ser)
+                broadcast_time = time.time()
             # Wipe bluetooth devices after sending cell message
             devices = []
         old_broadcast_data = broadcast_data
