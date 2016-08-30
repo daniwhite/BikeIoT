@@ -12,7 +12,7 @@ import rgb
 LOOP_ON = '01'
 LOOP_OFF = '00'
 DEBUG = False
-RSSI_THREASHOLD = -70
+RSSI_THREASHOLD = -200
 
 # global led so can access it from signal handler
 led = None
