@@ -1,0 +1,12 @@
+# Rickie Kerndt <rkerndt@cs.uoregon.edu>
+# logrotate configuration file for bike loop detection service
+# This file belongs under directory /etc/logrotate.d
+
+/var/log/bike_loop.log {
+    compress
+    rotate 5
+    weekly
+    maxsize 1MB
+    missingok
+    notifempty
+}
