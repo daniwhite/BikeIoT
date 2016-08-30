@@ -127,7 +127,7 @@ def get_data():
 
 def get_space():
     """Return what percent of space is left for images."""
-    df = subprocess.Popen(["df", "Images"], stdout=subprocess.PIPE)
+    df = subprocess.Popen(['df', IMG_PATH], stdout=subprocess.PIPE)
     output = df.communicate()[0]
     output = output.split('\n')[1]
     output = output.split(' ')[13]  # There are a lot of spaces in df output
@@ -221,8 +221,6 @@ while(True):
             print '*****************\n'
 
         # Take picture
-        if DEBUG:
-            print 'Night? %s ' % (time.localtime().tm_hour > 21 or time.localtime().tm_hour < 5)
         if time.time() - cam_time > CAM_PERIOD:
             cam_time = time.time()
             if not (time.localtime().tm_hour > 21 or time.localtime().tm_hour < 5):
