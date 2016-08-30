@@ -25,7 +25,7 @@ def sig_handler(signum, frame):
     global led, LOG, log_fh
     led.close()
     if LOG:
-        print('%s Stoped BleuTooth LE Traffic Light Loop Detection' % datetime.now(), file=log_fh)
+        print('%s Stopped BlueTooth LE Traffic Light Loop Detection' % datetime.now(), file=log_fh)
         log_fh.flush()
         log_fh.close()
     exit()
@@ -121,6 +121,10 @@ def main(args):
         print('Must run as root user')
     except KeyboardInterrupt:
         led.close()
+        if LOG:
+            print('%s Stopped BlueTooth LE Traffic Light Loop Detection' % datetime.now(), file=log_fh)
+            log_fh.flush()
+            log_fh.close()
         exit()
     except:
         GPIO.cleanup()
