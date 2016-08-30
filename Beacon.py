@@ -26,10 +26,12 @@ cam_time = time.time()
 # Set up grovepi
 LOUDNESS_SENSOR = 0  # Connect to A0
 TEMP_HUM_SENSOR = 6  # Connect to D6
-SWITCH = 5  # Connect to D5
-grovepi.pinMode(LOUDNESS_SENSOR, "INPUT")
-grovepi.pinMode(TEMP_HUM_SENSOR, "INPUT")
-grovepi.pinMode(SWITCH, "INPUT")
+LOOP = 3  # Connect to D5
+LED = 2
+grovepi.pinMode(LOUDNESS_SENSOR, 'INPUT')
+grovepi.pinMode(TEMP_HUM_SENSOR, 'INPUT')
+grovepi.pinMode(LOOP, 'INPUT')
+grovepi.pinMode(TEMP_HUM_SENSOR, 'OUTPUT')
 grove_queue = Queue()
 grove_data = []
 
@@ -45,7 +47,7 @@ cell_ser = serial.Serial(cell_device, cell_baudrate)
 # Data to send to cell
 broadcast_data = []
 old_broadcast_data = []
-prefixes = ["devs", "ld", "temp", "hum"]  # Should match gateway MQTT order
+prefixes = ['devs', 'ld', 'temp', "hum"]  # Should match gateway MQTT order
 
 # Initialize camera
 cam = picamera.PiCamera()
@@ -58,6 +60,8 @@ def bt_process():
             data = get_data()
             set_queue_data(data)
             broadcast(data[0])
+            # Diagnostic
+            grovepi.digitalWrite(LED, data[0])
     except IOError:
         if DEBUG:
             print 'IOError detected and excepted'
@@ -96,6 +100,7 @@ def cleanup():
     subprocess.call('sudo hciconfig hci0 noleadv', shell=True)
     ser_command('Cell off', cell_ser)
     cell_ser.close()
+    grovepi.digitalWrite(LED, 0)
 
 
 def get_data():
@@ -126,7 +131,7 @@ def get_loopstate():
 
     For now, since it's grovepi, don't call in multiple threads
     """
-    return grovepi.digitalRead(SWITCH)
+    return grovepi.digitalRead(LOOP)
 
 
 def get_queue_data():
@@ -175,7 +180,7 @@ def take_img(folder_path='/home/pi/Images/'):
 # Setup code for before running loop
 broadcast_proc = Process(target=bt_process)
 # Turn on cellular
-ser_command('Cell on', cell_ser)
+# ser_command('Cell on', cell_ser)
 
 # Main loop
 while(True):
@@ -227,6 +232,7 @@ while(True):
         broadcast_data = data[1:4]
         broadcast_data.insert(0, len(devices))
 
+        '''
         # Cell broadcast
         if (len(old_broadcast_data) != 0) and (
                 time.time() - cycle_time) > BROADCAST_PERIOD:
@@ -245,6 +251,7 @@ while(True):
             # Wipe bluetooth devices after sending cell message
             devices = []
         old_broadcast_data = broadcast_data
+        '''
 
         if DEBUG:
             print 'Cycled'
