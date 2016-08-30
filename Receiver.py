@@ -19,10 +19,15 @@ LOG = False
 
 # global led so can access it from signal handler
 led = None
+log_fh = None
 
 def sig_handler(signum, frame):
-    global led
+    global led, LOG, log_fh
     led.close()
+    if LOG:
+        print('%s Stoped BleuTooth LE Traffic Light Loop Detection' % datetime.now(), file=log_fh)
+        log_fh.flush()
+        log_fh.close()
     exit()
 
 def log_scan_entry(fh, se):
@@ -30,8 +35,7 @@ def log_scan_entry(fh, se):
     print(log_entry, file=fh)
 
 def main(args):
-    global led, DEBUG, RSSI_THREASHOLD, LOG
-    log_fh = None
+    global led, DEBUG, RSSI_THREASHOLD, LOG, log_fh
 
     if len(args) >= 2:
         RSSI_THREASHOLD = int(args[1])
@@ -40,6 +44,7 @@ def main(args):
     elif len(args) >= 3 and args[2] == "log":
         LOG = True
         log_fh = open(LOG_FILE, 'a')
+        print('%s Started BlueTooth LE Traffic Light Loop Detection' % datetime.now(), file=log_fh)
 
     led = rgb.RGB_led(21,20,16)
 
