@@ -4,23 +4,31 @@ from multiprocessing import Process, Queue
 from Queue import Empty
 import subprocess
 import time
+import os
 
 from bluepy import btle
 import grovepi
 import picamera
 import serial
 
-DEBUG = True
+DEBUG = False
 
 LOOP_ON = '01'
 LOOP_OFF = '00'
 
+IMG_PATH = '/home/pi/Images/'
+
 BROADCAST_PERIOD = 60*60  # At least ~540 to use 1 mb per month
+if DEBUG:
+    BROADCAST_PERIOD = 5
 CAM_PERIOD = 12  # How often to take a picture
+if DEBUG:
+    CAM_PERIOD = 5
 SCAN_LEN = 2  # How long to scan bluetooth at one time
 
 # Initialize start time for periodic events
-cycle_time = time.time()
+broadcast_time = time.time()
+broadcast_time -= BROADCAST_PERIOD  # Makes particle broadcast immediately
 cam_time = time.time()
 
 # Set up grovepi
@@ -47,7 +55,7 @@ cell_ser = serial.Serial(cell_device, cell_baudrate)
 # Data to send to cell
 broadcast_data = []
 old_broadcast_data = []
-prefixes = ['devs', 'ld', 'temp', "hum"]  # Should match gateway MQTT order
+prefixes = ['devs', 'ld', 'temp', 'hum', 'pics']
 
 # Initialize camera
 cam = picamera.PiCamera()
@@ -169,7 +177,7 @@ def set_queue_data(data):
     grove_queue.put(data)
 
 
-def take_img(folder_path='/home/pi/Images/'):
+def take_img(folder_path):
     """Take picture."""
     title = folder_path + time.ctime() + '.jpg'
     title = title.replace(' ', '_')
@@ -180,7 +188,7 @@ def take_img(folder_path='/home/pi/Images/'):
 # Setup code for before running loop
 broadcast_proc = Process(target=bt_process)
 # Turn on cellular
-# ser_command('Cell on', cell_ser)
+ser_command('Cell on', cell_ser)
 
 # Main loop
 while(True):
@@ -214,7 +222,12 @@ while(True):
             cam_time = time.time()
             if time.localtime().tm_hour > 21 or time.localtime().tm_hour < 5:
                 if get_space() < 95:
-                    take_img()
+                    take_img(IMG_PATH)
+
+        # Get number of images taken
+        pics = len(os.listdir(IMG_PATH))
+        if DEBUG:
+            print 'Pics: %d' % pics
 
         # Check for new devices
         scan_devices = sc.scan(SCAN_LEN)
@@ -227,15 +240,15 @@ while(True):
         if DEBUG:
             # Print device count
             print 'Devices found since ',
-            print cycle_time
+            print broadcast_time
 
         broadcast_data = data[1:4]
         broadcast_data.insert(0, len(devices))
+        broadcast_data.insert(len(broadcast_data) - 1, pics)
 
-        '''
         # Cell broadcast
-        if (len(old_broadcast_data) != 0) and (
-                time.time() - cycle_time) > BROADCAST_PERIOD:
+        if (len(old_broadcast_data) != 0) and ((
+                time.time() - broadcast_time) > BROADCAST_PERIOD):
             # Create message to broadcast
             cell_msg = '{'
             for i, d in enumerate(broadcast_data):
@@ -247,11 +260,10 @@ while(True):
                 print 'Cell message: ' + cell_msg + '\n'
             # Send broadcast
             ser_command(cell_msg, cell_ser)
-            cycle_time = time.time()
+            broadcast_time = time.time()
             # Wipe bluetooth devices after sending cell message
             devices = []
         old_broadcast_data = broadcast_data
-        '''
 
         if DEBUG:
             print 'Cycled'
