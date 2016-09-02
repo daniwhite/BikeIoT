@@ -1,9 +1,10 @@
 """Program for receiver RPi."""
-
+from __future__ import print_function
 from bluepy import btle
 import RPi.GPIO as GPIO
 import sys
 import signal
+from datetime import datetime
 
 # add pi python module dir to sys.path
 sys.path.append("/home/pi/lib/python")
@@ -12,19 +13,38 @@ import rgb
 LOOP_ON = '01'
 LOOP_OFF = '00'
 DEBUG = False
+RSSI_THREASHOLD = -200
+LOG_FILE = "/var/log/bike_loop.log"
+LOG = False
+
 # global led so can access it from signal handler
 led = None
+log_fh = None
 
 def sig_handler(signum, frame):
-    global led
+    global led, LOG, log_fh
     led.close()
+    if LOG:
+        print('%s Stopped BlueTooth LE Traffic Light Loop Detection' % datetime.now(), file=log_fh)
+        log_fh.flush()
+        log_fh.close()
     exit()
 
-def main(args):
-    global led, DEBUG
+def log_scan_entry(fh, se):
+    log_entry = '%s, addr:%s rssi:%s msg:%s' % (datetime.now(), se.addr, se.rssi, se.getValueText(7))
+    print(log_entry, file=fh)
 
-    if len(args) >= 2 and args[1] == "debug":
+def main(args):
+    global led, DEBUG, RSSI_THREASHOLD, LOG, log_fh
+
+    if len(args) >= 2:
+        RSSI_THREASHOLD = int(args[1])
+    if len(args) >= 3 and args[2] == "debug":
         DEBUG = True
+    elif len(args) >= 3 and args[2] == "log":
+        LOG = True
+        log_fh = open(LOG_FILE, 'a')
+        print('%s Started BlueTooth LE Traffic Light Loop Detection' % datetime.now(), file=log_fh)
 
     led = rgb.RGB_led(21,20,16)
 
@@ -55,23 +75,27 @@ def main(args):
             new_scan = True
             for i, s in enumerate(scanbuf):
                 if DEBUG:
-                    print '=======Scan number %d=======' % i
+                    print('=======Scan number %d=======' % i)
                 if (new_scan) and DEBUG:
-                    print '***NEW SCAN***'
+                    print('***NEW SCAN***')
                 for d in s:
+                    if d.rssi < RSSI_THREASHOLD:
+                        continue
                     msg = d.getValueText(7)
                     if DEBUG:
-                        print('address: %s' % d.addr)
+                        print('address: %s, rssi: %d' % (d.addr,d.rssi))
                         for adtype, description, value in d.getScanData():
-                            print(adtype, description, value)
+                            print('\t %s, %s, %s' % (adtype, description, value))
                     if msg is not None:
                         if msg[:len(msg) - 2] == key:
+                            if new_scan and LOG:
+                                log_scan_entry(log_fh, d)
                             beacon_detected = True
                             data = msg[len(msg) - 2:]
                             if new_scan and not (data == ''):
                                 databuf.insert(0, data)
                 if new_scan and DEBUG:
-                    print '******'
+                    print('******')
                 new_scan = False
 
             # Keep buffer at correct length
@@ -82,21 +106,25 @@ def main(args):
             # Set lights
             if beacon_detected:
                 if DEBUG:
-                    print 'Comm light: %s' % beacon_detected
+                    print('Comm light: %s' % beacon_detected)
                 if loop_state:
                     if DEBUG:
-                        print 'Loop light: %s' % beacon_detected and loop_state
+                        print('Loop light: %s' % beacon_detected and loop_state)
                     led.blue()
                 else:
                     led.red()
             else:
                 led.green(True)
             if DEBUG:
-                print
+                print()
     except btle.BTLEException:
-        print 'Must run as root user'
+        print('Must run as root user')
     except KeyboardInterrupt:
         led.close()
+        if LOG:
+            print('%s Stopped BlueTooth LE Traffic Light Loop Detection' % datetime.now(), file=log_fh)
+            log_fh.flush()
+            log_fh.close()
         exit()
 
 if __name__ == "__main__":
