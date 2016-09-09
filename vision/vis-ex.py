@@ -1,22 +1,21 @@
 """SVM HOG detector, based on opencv digits.py example."""
 
-from multiprocessing.pool import ThreadPool
 import os
 import sys
 import cv2
 
 import numpy as np
 from numpy.linalg import norm
-from common import mosaic
 
 CLASS_N = 10
 NEG_SCALE_FACTOR = 1
 
 imgs_dir = './'
 
-svm_params = dict( kernel_type = cv2.SVM_RBF,
-                    svm_type = cv2.SVM_C_SVC,
-                    C=1000, gamma=60 ) # Previously tuned
+svm_params = dict(kernel_type=cv2.SVM_RBF,
+                  svm_type=cv2.SVM_C_SVC,
+                  C=1000, gamma=60)  # Previously tuned
+
 
 def load_imgs(path, label):
     """Load data from file."""
@@ -26,8 +25,8 @@ def load_imgs(path, label):
     counter = 0
     total = len(os.listdir(path))
     for i in os.listdir(path):
-        print '%.2f%% done with %s, currently %s\r' % (100*(counter/float(total)),
-            path, i),
+        print '%.2f%% done with %s,',
+        print 'currently %s\r' % (100*(counter/float(total)), path, i),
         sys.stdout.flush()
         img = cv2.imread(path + i)
         samples.append(preprocess_hog(img))
@@ -50,9 +49,10 @@ def preprocess_hog(img):
     mag, ang = cv2.cartToPolar(gx, gy)
     bin_n = 16
     bin = np.int32(bin_n*ang/(2*np.pi))
-    bin_cells = bin[:10,:10], bin[10:,:10], bin[:10,10:], bin[10:,10:]
-    mag_cells = mag[:10,:10], mag[10:,:10], mag[:10,10:], mag[10:,10:]
-    hists = [np.bincount(b.ravel(), m.ravel(), bin_n) for b, m in zip(bin_cells, mag_cells)]
+    bin_cells = bin[:10, :10], bin[10:, :10], bin[:10, 10:], bin[10:, 10:]
+    mag_cells = mag[:10, :10], mag[10:, :10], mag[:10, 10:], mag[10:, 10:]
+    hists = [np.bincount(
+            b.ravel(), m.ravel(), bin_n) for b, m in zip(bin_cells, mag_cells)]
     hist = np.hstack(hists)
 
     # transform to Hellinger kernel
@@ -66,8 +66,8 @@ def preprocess_hog(img):
 
 if __name__ == '__main__':
     # Preprocess
-    pos_imgs_hog, pos_imgs, pos_labels = load_imgs(imgs_dir + 'Pos/',1)
-    neg_imgs_hog, neg_imgs,neg_labels = load_imgs(imgs_dir + 'Neg/',-1)
+    pos_imgs_hog, pos_imgs, pos_labels = load_imgs(imgs_dir + 'Pos/', 1)
+    neg_imgs_hog, neg_imgs, neg_labels = load_imgs(imgs_dir + 'Neg/', -1)
 
     imgs = pos_imgs + neg_imgs
     labels = pos_labels + neg_labels
