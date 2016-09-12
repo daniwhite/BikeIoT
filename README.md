@@ -24,7 +24,8 @@ Setup
 **Beacon**
 - Uses **Beacon.sh** and **Beacon.py** files
   - **Beacon.py** must either be in /home/pi, or else the filepath in the last line of **Beacon.sh** must be changed
-- Install [bluepy](https://github.com/IanHarvey/bluepy), [pyserial](https://github.com/pyserial/pyserial), and [grovepi](https://github.com/DexterInd/GrovePi) (use will **Scripts/install.sh**).
+- Disable getty on serial: `sudo systemctl disable serial-getty@ttyAMA0.service`
+- Install [bluepy](https://github.com/IanHarvey/bluepy), [pyserial](https://github.com/pyserial/pyserial), [grovepi](https://github.com/DexterInd/GrovePi)
 - Enable I2C with `sudo raspi-config`, under *Advanced Options* > *I2C*
 - (Optional) Change hostname with`sudo raspi-config`, under *Advanced Options* > *Hostname*
 - Create cronjob using `sudo crontab -e` (change `FILE_PATH` to path of Beacon.sh):
@@ -33,7 +34,6 @@ shell=bin/bash
 @reboot sh FILE_PATH >/home/pi/cronlog 2>&1
 ```
 - Enable camera through `raspi-config`
-- Disable getty on serial: `sudo systemctl disable serial-getty@ttyAMA0.service`
 - To use wifi, you may need to edit `/etc/wpa_supplicant/wpa_supplicant.conf` and add the following:
 ```
 network={
@@ -43,7 +43,11 @@ network={
 ```
 Particle instructions:
 - Install the [Particle CLI](https://github.com/spark/particle-cli)
-- To program it, put it in [DFU mode](https://docs.particle.io/guide/getting-started/modes/electron/#dfu-mode-device-firmware-upgrade-) and flash firmware [over USB](https://github.com/spark/particle-cli#compiling-remotely-and-flashing-locally) using the CLI (usually `particle flash --usb firmware.bin`)
+  1. Make sure you are using the most recent node version, available [here](https://nodejs.org/en/download/package-manager/#debian-and-ubuntu-based-linux-distributions)
+  2. Make sure npm is updated using `sudo npm install npm -g`
+  3. Install a different version of the serialport module that's compatible with the Raspberry Pi with this command: `sudo npm install --unsafe-perm serialport`
+  4. Follow instructions in the Particle CLI repository for ["Running from source (advanced)"](https://github.com/spark/particle-cli#running-from-source-advanced)
+- To program the particle, put it in [DFU mode](https://docs.particle.io/guide/getting-started/modes/electron/#dfu-mode-device-firmware-upgrade-) and flash firmware [over USB](https://github.com/spark/particle-cli#compiling-remotely-and-flashing-locally) using the CLI (usually `particle flash --usb firmware.bin`)
     - If using the atom particle package, make sure that only the particle project folder (with nothing that won't be going on the particle) is open when you compilw
 - To view the data, either run MQTT.py, or set up a webhook to work with [Zapier](zapier.com):
   - Create a new zap and select *Webhooks* as the trigger. Choose *Catch Hook.*
