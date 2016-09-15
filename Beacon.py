@@ -5,6 +5,7 @@ from Queue import Empty
 import subprocess
 import time
 import os
+import re
 
 from bluepy import btle
 import grovepi
@@ -130,7 +131,8 @@ def get_space():
     df = subprocess.Popen(['df', IMG_PATH], stdout=subprocess.PIPE)
     output = df.communicate()[0]
     output = output.split('\n')[1]
-    output = output.split(' ')[13]  # There are a lot of spaces in df output
+    output = re.sub(' +', ' ', output)  # Remove repeat spaces
+    output = output.split(' ')[4]
     output = int(output[0])
     return output
 

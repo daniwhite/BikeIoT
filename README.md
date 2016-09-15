@@ -27,6 +27,7 @@ Setup
 - Disable getty on serial: `sudo systemctl disable serial-getty@ttyAMA0.service`
 - Install [bluepy](https://github.com/IanHarvey/bluepy), [pyserial](https://github.com/pyserial/pyserial), [grovepi](https://github.com/DexterInd/GrovePi)
 - Enable I2C with `sudo raspi-config`, under *Advanced Options* > *I2C*
+- Enable serial with `sudo raspi-config`, under *Advanced Options* > *Serial*
 - (Optional) Change hostname with`sudo raspi-config`, under *Advanced Options* > *Hostname*
 - Create cronjob using `sudo crontab -e` (change `FILE_PATH` to path of Beacon.sh):
 ```
@@ -46,7 +47,8 @@ Particle instructions:
   1. Make sure you are using the most recent node version, available [here](https://nodejs.org/en/download/package-manager/#debian-and-ubuntu-based-linux-distributions)
   2. Make sure npm is updated using `sudo npm install npm -g`
   3. Install a different version of the serialport module that's compatible with the Raspberry Pi with this command: `sudo npm install --unsafe-perm serialport`
-  4. Follow instructions in the Particle CLI repository for ["Running from source (advanced)"](https://github.com/spark/particle-cli#running-from-source-advanced)
+  4. Install dfu-utils: `sudo apt-get install dfu-utils`
+  5. Follow instructions in the Particle CLI repository for ["Running from source (advanced)"](https://github.com/spark/particle-cli#running-from-source-advanced)
 - To program the particle, put it in [DFU mode](https://docs.particle.io/guide/getting-started/modes/electron/#dfu-mode-device-firmware-upgrade-) and flash firmware [over USB](https://github.com/spark/particle-cli#compiling-remotely-and-flashing-locally) using the CLI (usually `particle flash --usb firmware.bin`)
     - If using the atom particle package, make sure that only the particle project folder (with nothing that won't be going on the particle) is open when you compilw
 - To view the data, either run MQTT.py, or set up a webhook to work with [Zapier](zapier.com):
