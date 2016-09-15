@@ -7,6 +7,8 @@ import cv2
 import numpy as np
 from numpy.linalg import norm
 
+DEBUG = False
+
 CLASS_N = 10
 NEG_SCALE_FACTOR = 1
 
@@ -15,6 +17,7 @@ imgs_dir = './'
 svm_params = dict(kernel_type=cv2.SVM_RBF,
                   svm_type=cv2.SVM_C_SVC,
                   C=1000, gamma=60)  # Previously tuned
+knn_k = 3
 
 
 def load_imgs(path, label):
@@ -25,15 +28,17 @@ def load_imgs(path, label):
     counter = 0
     total = len(os.listdir(path))
     for i in os.listdir(path):
-        print '%.2f%% done with %s,',
-        print 'currently %s\r' % (100*(counter/float(total)), path, i),
+        percent = 100*(counter/float(total))
+        if DEBUG:
+            print '%.2f%% done with %s, currently %s\r' % (percent, path, i)
         sys.stdout.flush()
         img = cv2.imread(path + i)
         samples.append(preprocess_hog(img))
         counter += 1
         imgs.append(img)
         labels.append(label)
-    print '100%% done with %s\r' % path
+    if DEBUG:
+        print '100%% done with %s\r' % path
     sys.stdout.flush()
     return samples, imgs, labels
 
@@ -89,28 +94,45 @@ if __name__ == '__main__':
     labels_train, labels_test = np.split(labels, [train_n])
     imgs = imgs[train_n:]
 
-    # Initialize model
-    model = cv2.SVM(samples_train, labels_train, params=svm_params)
-    resp = model.predict_all(samples_test)
 
-    # Calulate error, etc.
-    err = (labels_test != resp).mean()
-    print('Error: %.2f %%' % (err*100))
+
+    # Initialize models
+    svm_model = cv2.SVM(samples_train, labels_train, params=svm_params)
+    svm_resp = svm_model.predict_all(samples_test)
+    # knn_model = cv2.KNearest()
+    # knnmodel()
+
     # Count total number of positives and negatives
-    pos = resp.flatten().tolist().count(1)
-    neg = resp.flatten().tolist().count(-1)
+    test_pos = svm_resp.flatten().tolist().count(1)
+    test_neg = svm_resp.flatten().tolist().count(-1)
+    labels_pos = labels_test.tolist().count(1)
+    labels_neg = labels_test.flatten().tolist().count(-1)
     # Calculate false positives vs false negatives
     false_pos = 0
     false_neg = 0
     correct = 0
-    for i in range(0, len(resp)):
-        if resp.flatten()[i] > labels_test[i]:
+    for i in range(0, len(svm_resp)):
+        if svm_resp.flatten()[i] > labels_test[i]:
+            resp_text="!False!"
             false_pos += 1
-        elif resp.flatten()[i] < labels_test[i]:
+        elif svm_resp.flatten()[i] < labels_test[i]:
             false_neg += 1
-        elif resp.flatten()[i] == labels_test[i]:
+            resp_text="!False!"
+        elif svm_resp.flatten()[i] == labels_test[i]:
             correct += 1
-    print 'pos=%s, neg=%s, -pos=%s, -neg=%s' % (pos, neg, false_pos, false_neg)
+            resp_text="|Correct|"
+        if labels_test[i] == -1:
+            resp_text += ' --Negative--'
+        else:
+            resp_text += ' ++Positive++'
+        if DEBUG:
+            cv2.putText(imgs[i], resp_text, (0,0), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255))
+            cv2.imshow(resp_text, imgs[i])
+            cv2.waitKey(0)
+
+    print 'Test data: pos=%s, neg=%s' % (test_pos, test_neg)
+    print 'Actual data: pos=%s, neg=%s' % (labels_pos, labels_neg)
+    print 'Comparison data: -pos=%s, -neg=%s, correct=%s' % (false_pos, false_neg, correct)
 
     # Save model
-    model.save('svm.dat')
+    svm_model.save('svm.dat')
